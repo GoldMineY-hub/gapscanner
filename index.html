@@ -404,19 +404,16 @@ function setAutoRefresh(val) {
   if (s > 0) { autoTimer = setInterval(runScan, s * 1000); showToast(`Auto-refresh every ${s}s`, 'success'); }
 }
 
-// ── Main scan ─────────────────────────────────────────────────────────────────
+// ── Main scan — uses the VSA proxy route (?url=) exactly like the VSA app ─────
 async function runScan() {
   const base = workerBase();
   if (!base) { showToast('Enter your Worker URL first', 'error'); return; }
 
-  const params = new URLSearchParams({
-    minGap:   document.getElementById('minGap').value,
-    minPrice: document.getElementById('minPrice').value,
-    maxPrice: document.getElementById('maxPrice').value,
-  });
-
+  const minGap    = parseFloat(document.getElementById('minGap').value)    || 10;
+  const minPrice  = parseFloat(document.getElementById('minPrice').value)  || 1;
+  const maxPrice  = parseFloat(document.getElementById('maxPrice').value)  || 20;
   const minRelVol = parseFloat(document.getElementById('minRelVol').value) || 0;
-  const maxFloat  = parseFloat(document.getElementById('maxFloat').value) || 999;
+  const maxFloat  = parseFloat(document.getElementById('maxFloat').value)  || 999;
 
   const btn = document.getElementById('scanBtn');
   btn.disabled = true;
@@ -424,22 +421,72 @@ async function runScan() {
   setTableState('loading');
 
   try {
-    const data = await wFetch(`/scan?${params}`);
+    // Use the existing VSA proxy (?url=) — browser sends cookies so Yahoo allows it
+    const yahooUrl = 'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved' +
+      '?formatted=false&lang=en-US&region=US&scrIds=day_gainers&count=100' +
+      '&fields=symbol,shortName,regularMarketPrice,regularMarketChangePercent,' +
+      'regularMarketPreviousClose,regularMarketVolume,averageDailyVolume3Month,' +
+      'floatShares,shortPercentOfFloat,sector,industry';
 
-    const filtered = data.stocks.filter(s => {
-      if (minRelVol > 0 && s.relVol != null && s.relVol < minRelVol) return false;
-      if ((s.floatM ?? s.float) != null && (s.floatM ?? s.float) > maxFloat) return false;
-      return true;
-    });
+    const proxyUrl = `${base}/?url=${encodeURIComponent(yahooUrl)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
 
-    const newSet = new Set(filtered.map(s => s.ticker));
-    results = filtered.map(s => ({ ...s, isNew: !prevTickers.has(s.ticker) }));
-    prevTickers = newSet;
+    const json = await res.json();
+
+    // Handle Yahoo Finance response structure
+    const quotes = json?.finance?.result?.[0]?.quotes
+                ?? json?.finance?.result?.[0]?.records
+                ?? json?.result?.[0]?.quotes
+                ?? [];
+
+    if (!quotes.length) throw new Error('No data returned from Yahoo Finance — market may be closed');
+
+    const stocks = [];
+    for (const q of quotes) {
+      if (!q?.symbol) continue;
+
+      const ticker    = q.symbol;
+      const price     = q.regularMarketPrice ?? 0;
+      const changePct = q.regularMarketChangePercent ?? 0;
+      const prevClose = q.regularMarketPreviousClose ?? (price / (1 + changePct / 100));
+      const volume    = q.regularMarketVolume ?? 0;
+      const avgVol    = q.averageDailyVolume3Month ?? 1;
+      const relVol    = avgVol > 0 ? +(volume / avgVol).toFixed(2) : null;
+      const floatM    = q.floatShares ? +(q.floatShares / 1_000_000).toFixed(2) : null;
+      const shortFlt  = q.shortPercentOfFloat ? +(q.shortPercentOfFloat * 100).toFixed(1) : null;
+
+      // Apply filters
+      if (changePct < minGap) continue;
+      if (price < minPrice || price > maxPrice) continue;
+      if (minRelVol > 0 && relVol !== null && relVol < minRelVol) continue;
+      if (floatM !== null && floatM > maxFloat) continue;
+
+      stocks.push({
+        ticker,
+        company:    q.shortName ?? '',
+        sector:     q.sector ?? '',
+        industry:   q.industry ?? '',
+        price:      +price.toFixed(2),
+        prevClose:  +prevClose.toFixed(2),
+        gapPct:     +changePct.toFixed(2),
+        volume, relVol, floatM,
+        shortFloat: shortFlt,
+        headline:   null,
+        catalyst:   'news',
+        isNew:      !prevTickers.has(ticker),
+        score: scoreStock({ gapPct: changePct, relVol, shortFloat: shortFlt, price }),
+      });
+    }
+
+    stocks.sort((a, b) => b.gapPct - a.gapPct);
+    prevTickers = new Set(stocks.map(s => s.ticker));
+    results = stocks;
 
     renderTable();
-    updateStats(data.scannedAt);
+    updateStats(new Date().toISOString());
 
-    if (results.length === 0) { setTableState('empty'); showToast('No matches', ''); }
+    if (results.length === 0) { setTableState('empty'); showToast('No matches for your filters', ''); }
     else showToast(`Found ${results.length} gapper${results.length !== 1 ? 's' : ''}`, 'success');
 
   } catch(e) {
@@ -449,6 +496,17 @@ async function runScan() {
 
   btn.disabled = false;
   btn.innerHTML = '▶ Run Scan';
+}
+
+// Score helper (used in runScan)
+function scoreStock({ gapPct, relVol, shortFloat, price }) {
+  let score = 0;
+  score += Math.min(40, (gapPct / 100) * 40);
+  if (relVol != null)     score += Math.min(25, ((relVol - 1) / 9) * 25);
+  if (shortFloat != null) score += shortFloat >= 20 ? 15 : shortFloat >= 10 ? 10 : shortFloat >= 5 ? 5 : 0;
+  if (price >= 2 && price <= 10)       score += 10;
+  else if (price > 10 && price <= 20)  score += 5;
+  return Math.round(Math.min(100, score));
 }
 
 // ── Render table ──────────────────────────────────────────────────────────────
