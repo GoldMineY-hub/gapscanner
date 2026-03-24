@@ -404,7 +404,7 @@ function setAutoRefresh(val) {
   if (s > 0) { autoTimer = setInterval(runScan, s * 1000); showToast(`Auto-refresh every ${s}s`, 'success'); }
 }
 
-// ── Main scan — uses the VSA proxy route (?url=) exactly like the VSA app ─────
+// ── Main scan — uses Google Finance gainers (no auth, works from Cloudflare) ──
 async function runScan() {
   const base = workerBase();
   if (!base) { showToast('Enter your Worker URL first', 'error'); return; }
@@ -421,73 +421,19 @@ async function runScan() {
   setTableState('loading');
 
   try {
-    // Use the existing VSA proxy (?url=) — browser sends cookies so Yahoo allows it
-    const yahooUrl = 'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved' +
-      '?formatted=false&lang=en-US&region=US&scrIds=day_gainers&count=100' +
-      '&fields=symbol,shortName,regularMarketPrice,regularMarketChangePercent,' +
-      'regularMarketPreviousClose,regularMarketVolume,averageDailyVolume3Month,' +
-      'floatShares,shortPercentOfFloat,sector,industry';
+    const data = await wFetch(`/scan?minGap=${minGap}&minPrice=${minPrice}&maxPrice=${maxPrice}&minRelVol=${minRelVol}&maxFloat=${maxFloat}`);
 
-    const proxyUrl = `${base}/?url=${encodeURIComponent(yahooUrl)}`;
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
-
-    const json = await res.json();
-
-    // Handle Yahoo Finance response structure
-    const quotes = json?.finance?.result?.[0]?.quotes
-                ?? json?.finance?.result?.[0]?.records
-                ?? json?.result?.[0]?.quotes
-                ?? [];
-
-    if (!quotes.length) throw new Error('No data returned from Yahoo Finance — market may be closed');
-
-    const stocks = [];
-    for (const q of quotes) {
-      if (!q?.symbol) continue;
-
-      const ticker    = q.symbol;
-      const price     = q.regularMarketPrice ?? 0;
-      const changePct = q.regularMarketChangePercent ?? 0;
-      const prevClose = q.regularMarketPreviousClose ?? (price / (1 + changePct / 100));
-      const volume    = q.regularMarketVolume ?? 0;
-      const avgVol    = q.averageDailyVolume3Month ?? 1;
-      const relVol    = avgVol > 0 ? +(volume / avgVol).toFixed(2) : null;
-      const floatM    = q.floatShares ? +(q.floatShares / 1_000_000).toFixed(2) : null;
-      const shortFlt  = q.shortPercentOfFloat ? +(q.shortPercentOfFloat * 100).toFixed(1) : null;
-
-      // Apply filters
-      if (changePct < minGap) continue;
-      if (price < minPrice || price > maxPrice) continue;
-      if (minRelVol > 0 && relVol !== null && relVol < minRelVol) continue;
-      if (floatM !== null && floatM > maxFloat) continue;
-
-      stocks.push({
-        ticker,
-        company:    q.shortName ?? '',
-        sector:     q.sector ?? '',
-        industry:   q.industry ?? '',
-        price:      +price.toFixed(2),
-        prevClose:  +prevClose.toFixed(2),
-        gapPct:     +changePct.toFixed(2),
-        volume, relVol, floatM,
-        shortFloat: shortFlt,
-        headline:   null,
-        catalyst:   'news',
-        isNew:      !prevTickers.has(ticker),
-        score: scoreStock({ gapPct: changePct, relVol, shortFloat: shortFlt, price }),
-      });
+    if (!data.stocks || data.stocks.length === 0) {
+      setTableState('empty');
+      showToast('No matches for your filters', '');
+    } else {
+      const newSet = new Set(data.stocks.map(s => s.ticker));
+      results = data.stocks.map(s => ({ ...s, isNew: !prevTickers.has(s.ticker) }));
+      prevTickers = newSet;
+      renderTable();
+      updateStats(data.scannedAt);
+      showToast(`Found ${results.length} gapper${results.length !== 1 ? 's' : ''}`, 'success');
     }
-
-    stocks.sort((a, b) => b.gapPct - a.gapPct);
-    prevTickers = new Set(stocks.map(s => s.ticker));
-    results = stocks;
-
-    renderTable();
-    updateStats(new Date().toISOString());
-
-    if (results.length === 0) { setTableState('empty'); showToast('No matches for your filters', ''); }
-    else showToast(`Found ${results.length} gapper${results.length !== 1 ? 's' : ''}`, 'success');
 
   } catch(e) {
     setTableState('error', e.message);
@@ -498,7 +444,7 @@ async function runScan() {
   btn.innerHTML = '▶ Run Scan';
 }
 
-// Score helper (used in runScan)
+// Score helper
 function scoreStock({ gapPct, relVol, shortFloat, price }) {
   let score = 0;
   score += Math.min(40, (gapPct / 100) * 40);
