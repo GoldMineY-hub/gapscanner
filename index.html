@@ -428,7 +428,7 @@ async function runScan() {
 
     const filtered = data.stocks.filter(s => {
       if (minRelVol > 0 && s.relVol != null && s.relVol < minRelVol) return false;
-      if (s.float != null && s.float > maxFloat) return false;
+      if ((s.floatM ?? s.float) != null && (s.floatM ?? s.float) > maxFloat) return false;
       return true;
     });
 
@@ -584,7 +584,7 @@ async function loadSectors() {
   document.getElementById('sectorsPanel').innerHTML = '<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
   try {
     const data = await wFetch('/sectors');
-    if (!data.sectors.length) { document.getElementById('sectorsPanel').innerHTML = '<div class="panel-loading">No data</div>'; return; }
+    if (!data.sectors || !data.sectors.length) { document.getElementById('sectorsPanel').innerHTML = '<div class="panel-loading">No data</div>'; return; }
     const max = Math.max(...data.sectors.map(s => Math.abs(s.changePct)));
     document.getElementById('sectorsPanel').innerHTML = `
       <div class="sector-list">
@@ -611,7 +611,7 @@ async function loadCalendar() {
   document.getElementById('calendarPanel').innerHTML = '<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
   try {
     const data = await wFetch('/calendar');
-    if (!data.events.length) { document.getElementById('calendarPanel').innerHTML = '<div class="panel-loading">No events found</div>'; return; }
+    if (!data.events || !data.events.length) { document.getElementById('calendarPanel').innerHTML = '<div class="panel-loading">No events found</div>'; return; }
     document.getElementById('calendarPanel').innerHTML = `
       <div class="cal-list">
         ${data.events.map(e => `
