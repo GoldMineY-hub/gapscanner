@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gap Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d0f;
+    --surface: #111417;
+    --surface2: #181c20;
+    --border: #1f2428;
+    --border2: #2a3038;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --accent: #00d4aa;
+    --accent2: #0099ff;
+    --green: #00d4aa;
+    --red: #ff4d6a;
+    --yellow: #ffc947;
+    --purple: #a78bfa;
+    --orange: #fb923c;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image: linear-gradient(rgba(0,212,170,.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,170,.03) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+
+  .app { position:relative; z-index:1; max-width:1600px; margin:0 auto; padding:20px; }
+
+  /* ── Header ── */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--border);
+    flex-wrap:wrap; gap:10px;
+  }
+  .logo { display:flex; align-items:baseline; gap:12px; }
+  .logo h1 { font-family:var(--mono); font-size:17px; font-weight:600; color:var(--accent); }
+  .logo span { font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+  .header-right { display:flex; align-items:center; gap:12px; }
+  .clock { font-family:var(--mono); font-size:13px; color:var(--muted); }
+  .mstatus { font-family:var(--mono); font-size:10px; padding:4px 9px; border-radius:3px; letter-spacing:1px; text-transform:uppercase; }
+  .mstatus.pre  { background:rgba(255,201,71,.12); color:var(--yellow); border:1px solid rgba(255,201,71,.25); }
+  .mstatus.open { background:rgba(0,212,170,.12);  color:var(--green);  border:1px solid rgba(0,212,170,.25); }
+  .mstatus.closed{background:rgba(100,116,139,.12);color:var(--muted);  border:1px solid rgba(100,116,139,.2);}
+
+  /* ── Worker bar ── */
+  .worker-bar {
+    background:var(--surface); border:1px solid var(--border); border-radius:7px;
+    padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .worker-bar label { font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+  .worker-bar input {
+    flex:1; min-width:260px; background:var(--bg); border:1px solid var(--border2);
+    border-radius:4px; padding:7px 11px; font-family:var(--mono); font-size:12px; color:var(--accent); outline:none;
+  }
+  .worker-bar input:focus { border-color:var(--accent); }
+  .worker-bar input::placeholder { color:var(--muted); }
+  .wstatus { font-family:var(--mono); font-size:11px; white-space:nowrap; }
+  .wstatus.ok  { color:var(--green); }
+  .wstatus.err { color:var(--red); }
+  .wstatus.idle{ color:var(--muted); }
+
+  /* ── Layout ── */
+  .layout { display:grid; grid-template-columns:1fr 300px; gap:16px; align-items:start; }
+  @media(max-width:1100px){ .layout{ grid-template-columns:1fr; } }
+
+  /* ── Controls ── */
+  .controls { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; margin-bottom:14px; }
+  .cg { background:var(--surface); border:1px solid var(--border); border-radius:7px; padding:11px 13px; }
+  .cg label { display:block; font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; }
+  .cg input, .cg select {
+    width:100%; background:var(--bg); border:1px solid var(--border2); border-radius:4px;
+    padding:6px 9px; font-family:var(--mono); font-size:12px; color:var(--text); outline:none;
+  }
+  .cg input:focus, .cg select:focus { border-color:var(--accent); }
+  .cg select option { background:var(--surface2); }
+
+  /* ── Actions ── */
+  .actions { display:flex; gap:9px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+  .btn { font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase; padding:9px 18px; border-radius:4px; border:none; cursor:pointer; transition:all .15s; }
+  .btn-primary { background:var(--accent); color:#000; }
+  .btn-primary:hover { background:#00f0c2; transform:translateY(-1px); }
+  .btn-primary:active { transform:none; }
+  .btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+  .btn-sec { background:transparent; color:var(--muted); border:1px solid var(--border2); }
+  .btn-sec:hover { border-color:var(--accent); color:var(--accent); }
+  .scan-info { font-family:var(--mono); font-size:10px; color:var(--muted); margin-left:auto; }
+
+  /* ── Stats row ── */
+  .stats-row { display:flex; gap:22px; margin-bottom:14px; flex-wrap:wrap; }
+  .stat { display:flex; flex-direction:column; gap:3px; }
+  .stat-label { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
+  .stat-value { font-family:var(--mono); font-size:18px; font-weight:600; }
+  .stat-value.g { color:var(--green); }
+  .stat-value.m { font-size:13px; color:var(--muted); }
+
+  /* ── Main table ── */
+  .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  .table-head { display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--border); }
+  .table-head h2 { font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+  .rcount { font-family:var(--mono); font-size:10px; color:var(--muted); }
+
+  .tbl-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; min-width:900px; }
+  thead th {
+    font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--muted); padding:9px 12px; text-align:left; border-bottom:1px solid var(--border);
+    white-space:nowrap; cursor:pointer; user-select:none;
+  }
+  thead th:hover { color:var(--accent); }
+  thead th.sorted { color:var(--accent); }
+  tbody tr { border-bottom:1px solid var(--border); transition:background .1s; cursor:pointer; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr.new-entry { animation:flashRow 1.2s ease-out; }
+  @keyframes flashRow { 0%{background:rgba(0,212,170,.12)} 100%{background:transparent} }
+  td { padding:10px 12px; font-family:var(--mono); font-size:12px; white-space:nowrap; }
+  .td-ticker { font-weight:600; font-size:13px; color:var(--accent2); }
+  .td-gap    { font-weight:600; color:var(--green); }
+  .td-muted  { color:var(--muted); font-size:11px; }
+  .td-rv     { color:var(--yellow); }
+  .td-sf     { color:var(--purple); }
+  .td-news   { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--muted); }
+  .td-news:hover { color:var(--text); }
+
+  .catalyst { font-size:10px; padding:2px 7px; border-radius:3px; letter-spacing:.5px; }
+  .catalyst.news    { background:rgba(0,153,255,.15); color:var(--accent2); border:1px solid rgba(0,153,255,.2); }
+  .catalyst.unknown { background:rgba(100,116,139,.1); color:var(--muted); border:1px solid var(--border); }
+
+  .score-bar { display:flex; align-items:center; gap:7px; }
+  .score-track { width:48px; height:3px; background:var(--border2); border-radius:2px; overflow:hidden; }
+  .score-fill  { height:3px; border-radius:2px; background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+  .score-num   { font-size:10px; color:var(--muted); width:22px; }
+
+  .atag { display:inline-block; font-size:8px; padding:2px 5px; border-radius:2px; letter-spacing:1px; text-transform:uppercase; margin-left:5px; font-weight:600; }
+  .atag.hot { background:rgba(255,77,106,.15); color:var(--red);   border:1px solid rgba(255,77,106,.3); }
+  .atag.new { background:rgba(0,212,170,.15);  color:var(--green); border:1px solid rgba(0,212,170,.3); }
+
+  /* ── State msgs ── */
+  .state-msg { padding:48px 20px; text-align:center; }
+  .state-msg .icon { font-size:30px; margin-bottom:10px; opacity:.4; }
+  .state-msg p     { font-family:var(--mono); font-size:12px; color:var(--muted); margin-bottom:5px; }
+  .state-msg small { font-size:10px; color:var(--border2); font-family:var(--mono); }
+
+  .spinner { display:inline-block; width:13px; height:13px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:7px; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* ── SIDEBAR ── */
+  .sidebar { display:flex; flex-direction:column; gap:14px; position:sticky; top:20px; }
+
+  .panel { background:var(--surface); border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  .panel-head {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid var(--border);
+  }
+  .panel-head h3 { font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+  .panel-head .refresh-btn { font-family:var(--mono); font-size:9px; color:var(--muted); background:none; border:none; cursor:pointer; padding:2px 6px; border-radius:3px; }
+  .panel-head .refresh-btn:hover { color:var(--accent); }
+  .panel-body { padding:12px 14px; }
+
+  /* Market widget */
+  .mkt-grid { display:flex; flex-direction:column; gap:10px; }
+  .mkt-row  { display:flex; align-items:center; justify-content:space-between; }
+  .mkt-sym  { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--text); }
+  .mkt-vals { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .mkt-price{ font-family:var(--mono); font-size:13px; color:var(--text); }
+  .mkt-chg  { font-family:var(--mono); font-size:11px; }
+  .mkt-chg.pos { color:var(--green); }
+  .mkt-chg.neg { color:var(--red); }
+  .mkt-pm   { font-family:var(--mono); font-size:10px; color:var(--muted); }
+  .mkt-sep  { height:1px; background:var(--border); margin:4px 0; }
+
+  /* VIX */
+  .vix-row { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+  .vix-label { font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .vix-val   { font-family:var(--mono); font-size:16px; font-weight:600; }
+  .vix-val.low  { color:var(--green); }
+  .vix-val.mid  { color:var(--yellow); }
+  .vix-val.high { color:var(--red); }
+  .vix-desc { font-family:var(--mono); font-size:9px; color:var(--muted); margin-top:2px; }
+
+  /* Sectors */
+  .sector-list { display:flex; flex-direction:column; gap:7px; }
+  .sector-row  { display:flex; align-items:center; gap:8px; }
+  .sector-name { font-family:var(--sans); font-size:11px; color:var(--text); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sector-bar-track { width:60px; height:4px; background:var(--border2); border-radius:2px; overflow:hidden; flex-shrink:0; }
+  .sector-bar-fill  { height:4px; border-radius:2px; }
+  .sector-pct { font-family:var(--mono); font-size:10px; width:42px; text-align:right; flex-shrink:0; }
+  .sector-pct.pos { color:var(--green); }
+  .sector-pct.neg { color:var(--red); }
+
+  /* Calendar */
+  .cal-list { display:flex; flex-direction:column; gap:8px; }
+  .cal-item { display:flex; align-items:flex-start; gap:9px; }
+  .cal-dot  { width:6px; height:6px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .cal-dot.high   { background:var(--red); }
+  .cal-dot.medium { background:var(--yellow); }
+  .cal-dot.low    { background:var(--muted); }
+  .cal-name { font-family:var(--sans); font-size:11px; color:var(--text); line-height:1.4; }
+  .cal-time { font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:2px; }
+
+  /* Loading panel state */
+  .panel-loading { padding:20px; text-align:center; font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+  /* Toast */
+  .toast { position:fixed; bottom:20px; right:20px; background:var(--surface2); border:1px solid var(--border2); border-radius:7px; padding:10px 15px; font-family:var(--mono); font-size:11px; color:var(--text); transform:translateY(60px); opacity:0; transition:all .25s; z-index:100; max-width:280px; }
+  .toast.show    { transform:translateY(0); opacity:1; }
+  .toast.error   { border-color:rgba(255,77,106,.4); color:var(--red); }
+  .toast.success { border-color:rgba(0,212,170,.4);  color:var(--green); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <h1>⬛ GAP SCANNER</h1>
+      <span>Finviz · No API Key · Cloudflare Worker</span>
+    </div>
+    <div class="header-right">
+      <span class="clock" id="clock">--:--:-- ET</span>
+      <span class="mstatus" id="mstatus">—</span>
+    </div>
+  </header>
+
+  <!-- Worker URL -->
+  <div class="worker-bar">
+    <label>Worker URL</label>
+    <input type="text" id="workerUrl" placeholder="https://your-worker.your-subdomain.workers.dev" autocomplete="off">
+    <button class="btn btn-sec" onclick="testWorker()">Test Connection</button>
+    <span class="wstatus idle" id="wstatus">● Not tested</span>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT: scanner -->
+    <div>
+      <!-- Controls -->
+      <div class="controls">
+        <div class="cg"><label>Min Gap %</label><input type="number" id="minGap" value="10" min="1" step="1"></div>
+        <div class="cg"><label>Min Price ($)</label><input type="number" id="minPrice" value="1" min="0.1" step="0.1"></div>
+        <div class="cg"><label>Max Price ($)</label><input type="number" id="maxPrice" value="20" min="1" step="0.5"></div>
+        <div class="cg"><label>Max Float (M)</label><input type="number" id="maxFloat" value="20" min="1" step="1"></div>
+        <div class="cg"><label>Min Rel Vol (x)</label><input type="number" id="minRelVol" value="2" min="1" step="0.5"></div>
+        <div class="cg">
+          <label>Auto Refresh</label>
+          <select id="autoRefresh" onchange="setAutoRefresh(this.value)">
+            <option value="0">Off</option>
+            <option value="60">1 min</option>
+            <option value="120">2 min</option>
+            <option value="300">5 min</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-primary" id="scanBtn" onclick="runScan()">▶ Run Scan</button>
+        <button class="btn btn-sec" onclick="clearResults()">Clear</button>
+        <button class="btn btn-sec" onclick="exportCSV()">↓ CSV</button>
+        <span class="scan-info" id="scanInfo"></span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" id="statsRow" style="display:none">
+        <div class="stat"><span class="stat-label">Gappers</span><span class="stat-value" id="sCount">0</span></div>
+        <div class="stat"><span class="stat-label">Avg Gap</span><span class="stat-value g" id="sAvg">—</span></div>
+        <div class="stat"><span class="stat-label">Top Gap</span><span class="stat-value g" id="sTop">—</span></div>
+        <div class="stat"><span class="stat-label">Scanned</span><span class="stat-value m" id="sTime">—</span></div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Results</h2>
+          <span class="rcount" id="rcount">—</span>
+        </div>
+        <div class="tbl-scroll">
+          <div id="tableContainer">
+            <div class="state-msg">
+              <div class="icon">⬛</div>
+              <p>Enter your Worker URL and press Run Scan.</p>
+              <small>Data sourced from Finviz via your Cloudflare Worker — no API key needed.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: sidebar -->
+    <div class="sidebar">
+
+      <!-- Market -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Market</h3>
+          <button class="refresh-btn" onclick="loadMarket()">↻ Refresh</button>
+        </div>
+        <div class="panel-body" id="marketPanel">
+          <div class="panel-loading"><span class="spinner"></span>Loading...</div>
+        </div>
+      </div>
+
+      <!-- Sectors -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Sectors Today</h3>
+          <button class="refresh-btn" onclick="loadSectors()">↻ Refresh</button>
+        </div>
+        <div class="panel-body" id="sectorsPanel">
+          <div class="panel-loading"><span class="spinner"></span>Loading...</div>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Economic Calendar</h3>
+          <button class="refresh-btn" onclick="loadCalendar()">↻ Refresh</button>
+        </div>
+        <div class="panel-body" id="calendarPanel">
+          <div class="panel-loading"><span class="spinner"></span>Loading...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let results = [];
+let prevTickers = new Set();
+let sortCol = 'gapPct', sortDir = -1;
+let autoTimer = null;
+
+// ── Persist worker URL ────────────────────────────────────────────────────────
+const saved = localStorage.getItem('worker_url');
+if (saved) document.getElementById('workerUrl').value = saved;
+document.getElementById('workerUrl').addEventListener('input', function() {
+  localStorage.setItem('worker_url', this.value.trim());
+  // auto-load sidebar when URL changes
+  loadSidebar();
+});
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent =
+    `${pad(et.getHours())}:${pad(et.getMinutes())}:${pad(et.getSeconds())} ET`;
+  const t = et.getHours() * 60 + et.getMinutes();
+  const el = document.getElementById('mstatus');
+  if      (t >= 240 && t < 570)  { el.textContent = 'Pre-Market';  el.className = 'mstatus pre'; }
+  else if (t >= 570 && t < 960)  { el.textContent = 'Market Open'; el.className = 'mstatus open'; }
+  else if (t >= 960 && t < 1200) { el.textContent = 'After Hours'; el.className = 'mstatus pre'; }
+  else                           { el.textContent = 'Closed';      el.className = 'mstatus closed'; }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function workerBase() {
+  return document.getElementById('workerUrl').value.trim().replace(/\/$/, '');
+}
+
+async function wFetch(path) {
+  const base = workerBase();
+  if (!base) throw new Error('No Worker URL set');
+  const res = await fetch(`${base}${path}`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Worker error');
+  return json;
+}
+
+// ── Test connection ───────────────────────────────────────────────────────────
+async function testWorker() {
+  const el = document.getElementById('wstatus');
+  el.textContent = '● Testing...'; el.className = 'wstatus idle';
+  try {
+    await wFetch('/health');
+    el.textContent = '● Connected'; el.className = 'wstatus ok';
+    showToast('Worker online ✓', 'success');
+    loadSidebar();
+  } catch(e) {
+    el.textContent = '● Failed'; el.className = 'wstatus err';
+    showToast('Worker error: ' + e.message, 'error');
+  }
+}
+
+// ── Auto refresh ──────────────────────────────────────────────────────────────
+function setAutoRefresh(val) {
+  clearInterval(autoTimer);
+  const s = parseInt(val);
+  if (s > 0) { autoTimer = setInterval(runScan, s * 1000); showToast(`Auto-refresh every ${s}s`, 'success'); }
+}
+
+// ── Main scan ─────────────────────────────────────────────────────────────────
+async function runScan() {
+  const base = workerBase();
+  if (!base) { showToast('Enter your Worker URL first', 'error'); return; }
+
+  const params = new URLSearchParams({
+    minGap:   document.getElementById('minGap').value,
+    minPrice: document.getElementById('minPrice').value,
+    maxPrice: document.getElementById('maxPrice').value,
+  });
+
+  const minRelVol = parseFloat(document.getElementById('minRelVol').value) || 0;
+  const maxFloat  = parseFloat(document.getElementById('maxFloat').value) || 999;
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Scanning...';
+  setTableState('loading');
+
+  try {
+    const data = await wFetch(`/scan?${params}`);
+
+    const filtered = data.stocks.filter(s => {
+      if (minRelVol > 0 && s.relVol != null && s.relVol < minRelVol) return false;
+      if (s.float != null && s.float > maxFloat) return false;
+      return true;
+    });
+
+    const newSet = new Set(filtered.map(s => s.ticker));
+    results = filtered.map(s => ({ ...s, isNew: !prevTickers.has(s.ticker) }));
+    prevTickers = newSet;
+
+    renderTable();
+    updateStats(data.scannedAt);
+
+    if (results.length === 0) { setTableState('empty'); showToast('No matches', ''); }
+    else showToast(`Found ${results.length} gapper${results.length !== 1 ? 's' : ''}`, 'success');
+
+  } catch(e) {
+    setTableState('error', e.message);
+    showToast('Error: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '▶ Run Scan';
+}
+
+// ── Render table ──────────────────────────────────────────────────────────────
+function renderTable() {
+  if (!results.length) { setTableState('empty'); return; }
+  document.getElementById('statsRow').style.display = 'flex';
+  document.getElementById('rcount').textContent = `${results.length} stock${results.length !== 1 ? 's' : ''}`;
+
+  const sorted = [...results].sort((a, b) => {
+    const av = a[sortCol] ?? -Infinity, bv = b[sortCol] ?? -Infinity;
+    return sortDir * (bv - av);
+  });
+
+  const th = (k, l) => `<th class="${sortCol===k?'sorted':''}" onclick="sortBy('${k}')">${l}${sortCol===k?(sortDir===-1?' ↓':' ↑'):''}</th>`;
+
+  document.getElementById('tableContainer').innerHTML = `
+    <table>
+      <thead><tr>
+        ${th('ticker','Ticker')}
+        ${th('price','Price')}
+        ${th('gapPct','Gap %')}
+        ${th('prevClose','Prev Close')}
+        ${th('sector','Sector')}
+        ${th('relVol','Rel Vol')}
+        ${th('shortFloat','Short Float')}
+        ${th('volume','Volume')}
+        <th>News</th>
+        <th>Cat.</th>
+        ${th('score','Score')}
+      </tr></thead>
+      <tbody>
+        ${sorted.map(s => `
+          <tr class="${s.isNew?'new-entry':''}" onclick="openFinviz('${s.ticker}')">
+            <td class="td-ticker">
+              ${s.ticker}
+              ${s.isNew?'<span class="atag new">NEW</span>':''}
+              ${(s.gapPct??0)>50?'<span class="atag hot">HOT</span>':''}
+            </td>
+            <td>${s.price!=null?'$'+s.price.toFixed(2):'—'}</td>
+            <td class="td-gap">${s.gapPct!=null?'+'+s.gapPct.toFixed(1)+'%':'—'}</td>
+            <td class="td-muted">${s.prevClose!=null?'$'+s.prevClose.toFixed(2):'—'}</td>
+            <td class="td-muted">${s.sector||'—'}</td>
+            <td class="td-rv">${s.relVol!=null?s.relVol.toFixed(1)+'x':'—'}</td>
+            <td class="td-sf">${s.shortFloat!=null?s.shortFloat.toFixed(1)+'%':'—'}</td>
+            <td class="td-muted">${fmtVol(s.volume)}</td>
+            <td class="td-news" title="${s.headline||''}">${s.headline||'—'}</td>
+            <td><span class="catalyst ${s.catalyst}">${s.catalyst}</span></td>
+            <td>
+              <div class="score-bar">
+                <div class="score-track"><div class="score-fill" style="width:${s.score}%"></div></div>
+                <span class="score-num">${s.score}</span>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = -1; }
+  renderTable();
+}
+
+function openFinviz(t) { window.open(`https://finviz.com/quote.ashx?t=${t}`, '_blank'); }
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(isoTime) {
+  document.getElementById('sCount').textContent = results.length;
+  const gaps = results.map(r => r.gapPct).filter(Boolean);
+  if (gaps.length) {
+    document.getElementById('sAvg').textContent = '+' + (gaps.reduce((a,b)=>a+b,0)/gaps.length).toFixed(1) + '%';
+    document.getElementById('sTop').textContent = '+' + Math.max(...gaps).toFixed(1) + '%';
+  }
+  if (isoTime) {
+    const d = new Date(isoTime);
+    document.getElementById('sTime').textContent = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  document.getElementById('scanInfo').textContent = `Last: ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function loadSidebar() {
+  if (!workerBase()) return;
+  loadMarket();
+  loadSectors();
+  loadCalendar();
+}
+
+async function loadMarket() {
+  document.getElementById('marketPanel').innerHTML = '<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
+  try {
+    const data = await wFetch('/market');
+    const { spy, qqq, vix } = data;
+
+    const mktRow = (sym, d) => {
+      if (!d || d.error) return `<div class="mkt-row"><span class="mkt-sym">${sym}</span><span class="td-muted">—</span></div>`;
+      const chgClass = (d.changePct ?? 0) >= 0 ? 'pos' : 'neg';
+      const chgSign  = (d.changePct ?? 0) >= 0 ? '+' : '';
+      return `
+        <div class="mkt-row">
+          <span class="mkt-sym">${sym}</span>
+          <div class="mkt-vals">
+            <span class="mkt-price">${d.price != null ? '$' + d.price.toFixed(2) : '—'}</span>
+            <span class="mkt-chg ${chgClass}">${d.changePct != null ? chgSign + d.changePct.toFixed(2) + '%' : '—'}</span>
+            ${d.preMarket != null ? `<span class="mkt-pm">PM: $${d.preMarket.toFixed(2)}</span>` : ''}
+          </div>
+        </div>`;
+    };
+
+    const vixVal = vix?.price ?? null;
+    const vixClass = vixVal == null ? '' : vixVal < 15 ? 'low' : vixVal < 25 ? 'mid' : 'high';
+    const vixLabel = vixVal == null ? '—' : vixVal < 15 ? 'Low volatility' : vixVal < 25 ? 'Moderate volatility' : 'High volatility — be careful';
+
+    document.getElementById('marketPanel').innerHTML = `
+      <div class="mkt-grid">
+        ${mktRow('SPY', spy)}
+        <div class="mkt-sep"></div>
+        ${mktRow('QQQ', qqq)}
+      </div>
+      <div class="vix-row">
+        <div>
+          <div class="vix-label">VIX</div>
+          <div class="vix-desc">${vixLabel}</div>
+        </div>
+        <span class="vix-val ${vixClass}">${vixVal != null ? vixVal.toFixed(2) : '—'}</span>
+      </div>`;
+  } catch(e) {
+    document.getElementById('marketPanel').innerHTML = `<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadSectors() {
+  document.getElementById('sectorsPanel').innerHTML = '<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
+  try {
+    const data = await wFetch('/sectors');
+    if (!data.sectors.length) { document.getElementById('sectorsPanel').innerHTML = '<div class="panel-loading">No data</div>'; return; }
+    const max = Math.max(...data.sectors.map(s => Math.abs(s.changePct)));
+    document.getElementById('sectorsPanel').innerHTML = `
+      <div class="sector-list">
+        ${data.sectors.map(s => {
+          const pct = s.changePct;
+          const pos = pct >= 0;
+          const w   = Math.round((Math.abs(pct) / max) * 100);
+          return `
+            <div class="sector-row">
+              <span class="sector-name" title="${s.name}">${s.name}</span>
+              <div class="sector-bar-track">
+                <div class="sector-bar-fill" style="width:${w}%;background:${pos?'var(--green)':'var(--red)'}"></div>
+              </div>
+              <span class="sector-pct ${pos?'pos':'neg'}">${pos?'+':''}${pct.toFixed(1)}%</span>
+            </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    document.getElementById('sectorsPanel').innerHTML = `<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadCalendar() {
+  document.getElementById('calendarPanel').innerHTML = '<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
+  try {
+    const data = await wFetch('/calendar');
+    if (!data.events.length) { document.getElementById('calendarPanel').innerHTML = '<div class="panel-loading">No events found</div>'; return; }
+    document.getElementById('calendarPanel').innerHTML = `
+      <div class="cal-list">
+        ${data.events.map(e => `
+          <div class="cal-item">
+            <div class="cal-dot ${e.impact}"></div>
+            <div>
+              <div class="cal-name">${e.name}</div>
+              <div class="cal-time">${e.date} ${e.time} ${e.country ? '· ' + e.country : ''}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e) {
+    document.getElementById('calendarPanel').innerHTML = `<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Misc ──────────────────────────────────────────────────────────────────────
+function setTableState(state, msg = '') {
+  const m = {
+    loading: `<div class="state-msg"><p><span class="spinner"></span>Fetching from Finviz via Worker...</p></div>`,
+    empty:   `<div class="state-msg"><div class="icon">📭</div><p>No gappers matched your filters.</p><small>Try lowering Min Gap % or adjusting price range.</small></div>`,
+    error:   `<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Check your Worker URL and deployment.</small></div>`,
+  };
+  if (m[state]) document.getElementById('tableContainer').innerHTML = m[state];
+}
+
+function clearResults() {
+  results = []; prevTickers = new Set();
+  document.getElementById('tableContainer').innerHTML = `<div class="state-msg"><div class="icon">⬛</div><p>Cleared.</p><small>Press Run Scan to fetch fresh data.</small></div>`;
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('rcount').textContent = '—';
+  document.getElementById('scanInfo').textContent = '';
+}
+
+function fmtVol(v) {
+  if (!v) return '—';
+  if (v >= 1_000_000) return (v/1_000_000).toFixed(1)+'M';
+  if (v >= 1_000)     return (v/1_000).toFixed(0)+'K';
+  return String(v);
+}
+
+function exportCSV() {
+  if (!results.length) { showToast('No results to export', ''); return; }
+  const h = 'Ticker,Company,Sector,Industry,Price,Gap%,PrevClose,RelVol,ShortFloat%,Volume,Headline,Score\n';
+  const r = results.map(s =>
+    `${s.ticker},"${s.company}","${s.sector}","${s.industry}",${s.price??''},${s.gapPct?.toFixed(2)??''},${s.prevClose??''},${s.relVol?.toFixed(2)??''},${s.shortFloat?.toFixed(1)??''},${s.volume??''},"${(s.headline||'').replace(/"/g,"'")}",${s.score}`
+  ).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([h+r], { type:'text/csv' }));
+  a.download = `gap-scan-${new Date().toISOString().slice(0,16).replace('T','_')}.csv`;
+  a.click();
+  showToast('CSV exported', 'success');
+}
+
+let toastT;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast show ${type}`;
+  clearTimeout(toastT); toastT = setTimeout(() => el.className='toast', 3000);
+}
+
+// Auto-load sidebar if URL already saved
+if (workerBase()) loadSidebar();
+</script>
+</body>
+</html>
