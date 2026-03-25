@@ -31,13 +31,21 @@
   .mstatus.open{background:rgba(0,212,170,.12);color:var(--green);border:1px solid rgba(0,212,170,.25)}
   .mstatus.closed{background:rgba(100,116,139,.12);color:var(--muted);border:1px solid rgba(100,116,139,.2)}
 
-  .worker-bar{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .worker-bar label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
-  .worker-bar input{flex:1;min-width:260px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:7px 11px;font-family:var(--mono);font-size:12px;color:var(--accent);outline:none}
-  .worker-bar input:focus{border-color:var(--accent)}
-  .worker-bar input::placeholder{color:var(--muted)}
-  .wstatus{font-family:var(--mono);font-size:11px;white-space:nowrap}
-  .wstatus.ok{color:var(--green)} .wstatus.err{color:var(--red)} .wstatus.idle{color:var(--muted)}
+  /* Config bars */
+  .config-bar{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .config-bar label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+  .config-bar input{flex:1;min-width:220px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:7px 11px;font-family:var(--mono);font-size:12px;color:var(--accent);outline:none;transition:border-color .2s}
+  .config-bar input:focus{border-color:var(--accent)}
+  .config-bar input::placeholder{color:var(--muted)}
+  .config-bar input.key-input{color:var(--yellow)}
+  .config-bar input.key-input:focus{border-color:var(--yellow)}
+
+  .status-badge{font-family:var(--mono);font-size:11px;white-space:nowrap}
+  .status-badge.ok{color:var(--green)} .status-badge.err{color:var(--red)} .status-badge.idle{color:var(--muted)}
+
+  .key-note{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+  .key-note a{color:var(--accent2);text-decoration:none}
+  .key-note a:hover{text-decoration:underline}
 
   .layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
   @media(max-width:1100px){.layout{grid-template-columns:1fr}}
@@ -69,7 +77,7 @@
   .table-head h2{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
   .rcount{font-family:var(--mono);font-size:10px;color:var(--muted)}
   .tbl-scroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;min-width:700px}
+  table{width:100%;border-collapse:collapse;min-width:800px}
   thead th{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
   thead th:hover{color:var(--accent)} thead th.sorted{color:var(--accent)}
   tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
@@ -80,6 +88,8 @@
   .td-ticker{font-weight:600;font-size:13px;color:var(--accent2)}
   .td-gap{font-weight:600;color:var(--green)}
   .td-muted{color:var(--muted);font-size:11px}
+  .td-rv{color:var(--purple)}
+  .td-pm{color:var(--yellow)}
   .atag{display:inline-block;font-size:8px;padding:2px 5px;border-radius:2px;letter-spacing:1px;text-transform:uppercase;margin-left:5px;font-weight:600}
   .atag.hot{background:rgba(255,77,106,.15);color:var(--red);border:1px solid rgba(255,77,106,.3)}
   .atag.new{background:rgba(0,212,170,.15);color:var(--green);border:1px solid rgba(0,212,170,.3)}
@@ -87,6 +97,9 @@
   .score-track{width:48px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden}
   .score-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
   .score-num{font-size:10px;color:var(--muted);width:22px}
+  .news-tag{font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(0,212,170,.12);color:var(--green);border:1px solid rgba(0,212,170,.25);cursor:pointer;font-family:var(--mono)}
+  .news-tag:hover{background:rgba(0,212,170,.2)}
+  .no-news{font-size:10px;color:var(--border2);font-family:var(--mono)}
 
   .state-msg{padding:48px 20px;text-align:center}
   .state-msg .icon{font-size:30px;margin-bottom:10px;opacity:.4}
@@ -111,28 +124,12 @@
   .mkt-price{font-family:var(--mono);font-size:13px}
   .mkt-chg{font-family:var(--mono);font-size:11px}
   .mkt-chg.pos{color:var(--green)} .mkt-chg.neg{color:var(--red)}
-  .mkt-pm{font-family:var(--mono);font-size:10px;color:var(--muted)}
   .mkt-sep{height:1px;background:var(--border);margin:4px 0}
   .vix-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
   .vix-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
   .vix-val{font-family:var(--mono);font-size:16px;font-weight:600}
   .vix-val.low{color:var(--green)} .vix-val.mid{color:var(--yellow)} .vix-val.high{color:var(--red)}
   .vix-desc{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px}
-
-  .sector-list{display:flex;flex-direction:column;gap:7px}
-  .sector-row{display:flex;align-items:center;gap:8px}
-  .sector-name{font-family:var(--sans);font-size:11px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .sector-track{width:60px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;flex-shrink:0}
-  .sector-fill{height:4px;border-radius:2px}
-  .sector-pct{font-family:var(--mono);font-size:10px;width:42px;text-align:right;flex-shrink:0}
-  .sector-pct.pos{color:var(--green)} .sector-pct.neg{color:var(--red)}
-
-  .cal-list{display:flex;flex-direction:column;gap:8px}
-  .cal-item{display:flex;align-items:flex-start;gap:9px}
-  .cal-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
-  .cal-dot.high{background:var(--red)} .cal-dot.medium{background:var(--yellow)} .cal-dot.low{background:var(--muted)}
-  .cal-name{font-family:var(--sans);font-size:11px;color:var(--text);line-height:1.4}
-  .cal-time{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
 
   .news-list{display:flex;flex-direction:column;gap:10px}
   .news-item{border-bottom:1px solid var(--border);padding-bottom:10px}
@@ -141,10 +138,9 @@
   .news-title:hover{color:var(--accent)}
   .news-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px}
   .news-tickers{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-  .news-ticker{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:2px;background:rgba(0,153,255,.1);color:var(--accent2);border:1px solid rgba(0,153,255,.2)}
-  .td-news-tag{font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(0,212,170,.12);color:var(--green);border:1px solid rgba(0,212,170,.25);white-space:nowrap;cursor:pointer;font-family:var(--mono)}
-  .td-news-tag:hover{background:rgba(0,212,170,.2)}
-  .td-no-news{font-size:10px;color:var(--border2);font-family:var(--mono)}bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:10px 15px;font-family:var(--mono);font-size:11px;color:var(--text);transform:translateY(60px);opacity:0;transition:all .25s;z-index:100;max-width:280px}
+  .news-ticker-tag{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:2px;background:rgba(0,153,255,.1);color:var(--accent2);border:1px solid rgba(0,153,255,.2)}
+
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:10px 15px;font-family:var(--mono);font-size:11px;color:var(--text);transform:translateY(60px);opacity:0;transition:all .25s;z-index:100;max-width:300px}
   .toast.show{transform:translateY(0);opacity:1}
   .toast.error{border-color:rgba(255,77,106,.4);color:var(--red)}
   .toast.success{border-color:rgba(0,212,170,.4);color:var(--green)}
@@ -156,7 +152,7 @@
   <header>
     <div class="logo">
       <h1>⬛ GAP SCANNER</h1>
-      <span>Google Finance · No API Key</span>
+      <span>Finnhub · Real-time US Data</span>
     </div>
     <div class="header-right">
       <span class="clock" id="clock">--:--:-- ET</span>
@@ -164,17 +160,25 @@
     </div>
   </header>
 
-  <div class="worker-bar">
+  <!-- Worker URL -->
+  <div class="config-bar">
     <label>Worker URL</label>
     <input type="text" id="workerUrl" placeholder="https://gap-scanner.yourname.workers.dev" autocomplete="off">
-    <button class="btn btn-sec" onclick="testWorker()">Test Connection</button>
-    <span class="wstatus idle" id="wstatus">● Not tested</span>
+    <button class="btn btn-sec" onclick="testWorker()">Test</button>
+    <span class="status-badge idle" id="wstatus">● Not tested</span>
+  </div>
+
+  <!-- Finnhub API Key -->
+  <div class="config-bar">
+    <label>Finnhub API Key</label>
+    <input type="password" id="apiKey" class="key-input" placeholder="Paste your free Finnhub API key here..." autocomplete="off">
+    <span class="key-note">Free key at <a href="https://finnhub.io" target="_blank">finnhub.io</a> — no credit card, works worldwide</span>
   </div>
 
   <div class="layout">
     <div>
       <div class="controls">
-        <div class="cg"><label>Min Gap %</label><input type="number" id="minGap" value="5" min="1" step="1"></div>
+        <div class="cg"><label>Min Gap %</label><input type="number" id="minGap" value="10" min="1" step="1"></div>
         <div class="cg"><label>Min Price ($)</label><input type="number" id="minPrice" value="1" min="0.1" step="0.1"></div>
         <div class="cg"><label>Max Price ($)</label><input type="number" id="maxPrice" value="20" min="1" step="0.5"></div>
         <div class="cg">
@@ -211,8 +215,8 @@
           <div id="tableContainer">
             <div class="state-msg">
               <div class="icon">⬛</div>
-              <p>Enter your Gap Scanner Worker URL and press Run Scan.</p>
-              <small>Data from Google Finance — no API key needed.</small>
+              <p>Enter your Worker URL and Finnhub API key, then press Run Scan.</p>
+              <small>Each person uses their own free Finnhub key — get one at finnhub.io</small>
             </div>
           </div>
         </div>
@@ -221,16 +225,12 @@
 
     <div class="sidebar">
       <div class="panel">
-        <div class="panel-head"><h3>Market</h3><button onclick="loadMarket()">↻ Refresh</button></div>
-        <div class="panel-body" id="marketPanel"><div class="panel-loading"><span class="spinner"></span>Loading...</div></div>
+        <div class="panel-head"><h3>Market</h3><button onclick="loadMarket()">↻</button></div>
+        <div class="panel-body" id="marketPanel"><div class="panel-loading">Enter API key to load</div></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><h3>Sectors Today</h3><button onclick="loadSectors()">↻ Refresh</button></div>
-        <div class="panel-body" id="sectorsPanel"><div class="panel-loading"><span class="spinner"></span>Loading...</div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Latest News</h3><button onclick="loadNews()">↻ Refresh</button></div>
-        <div class="panel-body" id="newsPanel"><div class="panel-loading"><span class="spinner"></span>Loading...</div></div>
+        <div class="panel-head"><h3>Latest News</h3><button onclick="loadNews()">↻</button></div>
+        <div class="panel-body" id="newsPanel"><div class="panel-loading">Enter API key to load</div></div>
       </div>
     </div>
   </div>
@@ -240,12 +240,18 @@
 <script>
 let results = [], prevTickers = new Set(), sortCol = 'gapPct', sortDir = -1, autoTimer = null;
 
-// Persist worker URL
-const saved = localStorage.getItem('gap_worker_url');
-if (saved) document.getElementById('workerUrl').value = saved;
+// Persist settings
+const savedWorker = localStorage.getItem('gap_worker_url');
+const savedKey    = localStorage.getItem('gap_finnhub_key');
+if (savedWorker) document.getElementById('workerUrl').value = savedWorker;
+if (savedKey)    document.getElementById('apiKey').value = savedKey;
+
 document.getElementById('workerUrl').addEventListener('input', function() {
   localStorage.setItem('gap_worker_url', this.value.trim());
-  if (this.value.trim()) loadSidebar();
+});
+document.getElementById('apiKey').addEventListener('input', function() {
+  localStorage.setItem('gap_finnhub_key', this.value.trim());
+  if (this.value.trim() && base()) loadSidebar();
 });
 
 // Clock
@@ -263,11 +269,15 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 function base() { return document.getElementById('workerUrl').value.trim().replace(/\/$/,''); }
+function apiKey() { return document.getElementById('apiKey').value.trim(); }
 
 async function call(path) {
   const b = base();
   if (!b) throw new Error('No Worker URL set');
-  const res = await fetch(`${b}${path}`);
+  const k = apiKey();
+  const sep = path.includes('?') ? '&' : '?';
+  const url = k ? `${b}${path}${sep}key=${encodeURIComponent(k)}` : `${b}${path}`;
+  const res = await fetch(url);
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Worker error');
   return json;
@@ -275,14 +285,14 @@ async function call(path) {
 
 async function testWorker() {
   const el = document.getElementById('wstatus');
-  el.textContent='● Testing...'; el.className='wstatus idle';
+  el.textContent='● Testing...'; el.className='status-badge idle';
   try {
-    await call('/health');
-    el.textContent='● Connected'; el.className='wstatus ok';
+    await fetch(`${base()}/health`).then(r => r.json());
+    el.textContent='● Connected'; el.className='status-badge ok';
     showToast('Worker online ✓','success');
-    loadSidebar();
+    if (apiKey()) loadSidebar();
   } catch(e) {
-    el.textContent='● Failed'; el.className='wstatus err';
+    el.textContent='● Failed'; el.className='status-badge err';
     showToast('Failed: '+e.message,'error');
   }
 }
@@ -294,13 +304,17 @@ function setAutoRefresh(val) {
 }
 
 async function runScan() {
-  if (!base()) { showToast('Enter Worker URL first','error'); return; }
-  const minGap   = document.getElementById('minGap').value   || 5;
+  if (!base())   { showToast('Enter Worker URL first','error'); return; }
+  if (!apiKey()) { showToast('Enter your Finnhub API key first','error'); return; }
+
+  const minGap   = document.getElementById('minGap').value   || 10;
   const minPrice = document.getElementById('minPrice').value || 1;
   const maxPrice = document.getElementById('maxPrice').value || 20;
+
   const btn = document.getElementById('scanBtn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Scanning...';
   setState('loading');
+
   try {
     const data = await call(`/scan?minGap=${minGap}&minPrice=${minPrice}&maxPrice=${maxPrice}`);
     const newSet = new Set((data.stocks||[]).map(s=>s.ticker));
@@ -326,22 +340,38 @@ function renderTable() {
   document.getElementById('tableContainer').innerHTML=`
     <table>
       <thead><tr>
-        ${th('ticker','Ticker')}${th('price','Price')}${th('gapPct','Gap %')}
-        ${th('preMarketPrice','Pre-Mkt')}${th('relVol','Rel Vol')}
-        ${th('volume','Volume')}<th>Catalyst</th>${th('score','Score')}
+        ${th('ticker','Ticker')}
+        ${th('company','Company')}
+        ${th('price','Price')}
+        ${th('gapPct','Gap %')}
+        ${th('prevClose','Prev Close')}
+        ${th('relVol','Rel Vol')}
+        ${th('volume','Volume')}
+        <th>News</th>
+        ${th('score','Score')}
       </tr></thead>
       <tbody>${sorted.map(s=>`
-        <tr class="${s.isNew?'new-entry':''}" onclick="window.open('https://www.google.com/finance/quote/${s.ticker}:${s.exchange??'NASDAQ'}','_blank')">
-          <td class="td-ticker">${s.ticker}${s.isNew?'<span class="atag new">NEW</span>':''}${(s.gapPct??0)>30?'<span class="atag hot">HOT</span>':''}</td>
-          <td>${s.price!=null?'$'+s.price.toFixed(2):'—'}</td>
-          <td class="td-gap">${s.gapPct!=null?'+'+s.gapPct.toFixed(1)+'%':'—'}</td>
-          <td style="color:var(--yellow);font-family:var(--mono);font-size:12px">${s.preMarketPrice!=null?'$'+s.preMarketPrice.toFixed(2)+(s.preMarketChange!=null?' ('+( s.preMarketChange>0?'+':'')+s.preMarketChange.toFixed(1)+'%)':''):'—'}</td>
-          <td style="color:var(--purple);font-family:var(--mono);font-size:12px">${s.relVol!=null?s.relVol.toFixed(1)+'x':'—'}</td>
+        <tr class="${s.isNew?'new-entry':''}" onclick="window.open('https://finance.yahoo.com/quote/${s.ticker}','_blank')">
+          <td class="td-ticker">
+            ${s.ticker}
+            ${s.isNew?'<span class="atag new">NEW</span>':''}
+            ${(s.gapPct??0)>30?'<span class="atag hot">HOT</span>':''}
+          </td>
+          <td class="td-muted" style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${s.company||'—'}</td>
+          <td>$${s.price?.toFixed(2)??'—'}</td>
+          <td class="td-gap">+${s.gapPct?.toFixed(1)??'—'}%</td>
+          <td class="td-muted">$${s.prevClose?.toFixed(2)??'—'}</td>
+          <td class="td-rv">${s.relVol!=null?s.relVol.toFixed(1)+'x':'—'}</td>
           <td class="td-muted">${fmtVol(s.volume)}</td>
-          <td>${s.hasNews && s.headline
-            ? `<span class="td-news-tag" title="${s.headline}" onclick="event.stopPropagation();window.open('${s.newsUrl}','_blank')">📰 NEWS</span>`
-            : `<span class="td-no-news">—</span>`}</td>
-          <td><div class="score-bar"><div class="score-track"><div class="score-fill" style="width:${s.score}%"></div></div><span class="score-num">${s.score}</span></div></td>
+          <td>${s.hasNews
+            ?`<span class="news-tag" title="${s.headline||''}" onclick="event.stopPropagation();window.open('${s.newsUrl||'#'}','_blank')">📰 NEWS</span>`
+            :`<span class="no-news">—</span>`}</td>
+          <td>
+            <div class="score-bar">
+              <div class="score-track"><div class="score-fill" style="width:${s.score}%"></div></div>
+              <span class="score-num">${s.score}</span>
+            </div>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>`;
@@ -361,8 +391,7 @@ function updateStats(iso) {
   document.getElementById('scanInfo').textContent=`Last: ${t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
 }
 
-// Sidebar
-function loadSidebar() { if(!base()) return; loadMarket(); loadSectors(); loadNews(); }
+function loadSidebar() { if(!base()||!apiKey()) return; loadMarket(); loadNews(); }
 
 async function loadMarket() {
   document.getElementById('marketPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
@@ -371,39 +400,29 @@ async function loadMarket() {
     const row=(sym,q)=>{
       if(!q||q.error) return `<div class="mkt-row"><span class="mkt-sym">${sym}</span><span class="td-muted">—</span></div>`;
       const pos=(q.changePct??0)>=0;
-      return `<div class="mkt-row"><span class="mkt-sym">${sym}</span><div class="mkt-vals">
-        <span class="mkt-price">${q.price!=null?'$'+q.price.toFixed(2):'—'}</span>
-        <span class="mkt-chg ${pos?'pos':'neg'}">${q.changePct!=null?(pos?'+':'')+q.changePct.toFixed(2)+'%':'—'}</span>
-        ${q.preMarket?`<span class="mkt-pm">PM: $${q.preMarket.toFixed(2)}</span>`:''}
-      </div></div>`;
+      return `<div class="mkt-row">
+        <span class="mkt-sym">${sym}</span>
+        <div class="mkt-vals">
+          <span class="mkt-price">${q.price!=null?'$'+q.price.toFixed(2):'—'}</span>
+          <span class="mkt-chg ${pos?'pos':'neg'}">${q.changePct!=null?(pos?'+':'')+q.changePct.toFixed(2)+'%':'—'}</span>
+        </div>
+      </div>`;
     };
     const v=d.vix?.price;
     const vc=v==null?'':v<15?'low':v<25?'mid':'high';
     const vl=v==null?'—':v<15?'Low volatility':v<25?'Moderate':' High — be careful';
     document.getElementById('marketPanel').innerHTML=`
-      <div class="mkt-grid">${row('SPY',d.spy)}<div class="mkt-sep"></div>${row('QQQ',d.qqq)}</div>
-      <div class="vix-row"><div><div class="vix-label">VIX</div><div class="vix-desc">${vl}</div></div>
-      <span class="vix-val ${vc}">${v!=null?v.toFixed(2):'—'}</span></div>`;
+      <div class="mkt-grid">
+        ${row('SPY',d.spy)}
+        <div class="mkt-sep"></div>
+        ${row('QQQ',d.qqq)}
+      </div>
+      <div class="vix-row">
+        <div><div class="vix-label">VIX</div><div class="vix-desc">${vl}</div></div>
+        <span class="vix-val ${vc}">${v!=null?v.toFixed(2):'—'}</span>
+      </div>`;
   } catch(e) {
     document.getElementById('marketPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
-  }
-}
-
-async function loadSectors() {
-  document.getElementById('sectorsPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
-  try {
-    const d = await call('/sectors');
-    if(!d.sectors?.length){document.getElementById('sectorsPanel').innerHTML='<div class="panel-loading">No data</div>';return;}
-    const max=Math.max(...d.sectors.map(s=>Math.abs(s.changePct)));
-    document.getElementById('sectorsPanel').innerHTML=`<div class="sector-list">${d.sectors.map(s=>{
-      const pos=s.changePct>=0, w=Math.round(Math.abs(s.changePct)/max*100);
-      return `<div class="sector-row">
-        <span class="sector-name" title="${s.name}">${s.name}</span>
-        <div class="sector-track"><div class="sector-fill" style="width:${w}%;background:${pos?'var(--green)':'var(--red)'}"></div></div>
-        <span class="sector-pct ${pos?'pos':'neg'}">${pos?'+':''}${s.changePct.toFixed(1)}%</span>
-      </div>`;}).join('')}</div>`;
-  } catch(e) {
-    document.getElementById('sectorsPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
   }
 }
 
@@ -414,9 +433,9 @@ async function loadNews() {
     if(!d.items?.length){document.getElementById('newsPanel').innerHTML='<div class="panel-loading">No news</div>';return;}
     document.getElementById('newsPanel').innerHTML=`<div class="news-list">${d.items.slice(0,15).map(n=>`
       <div class="news-item">
-        <a class="news-title" href="${n.link}" target="_blank">${n.title}</a>
-        <div class="news-meta">${n.pubDate ? new Date(n.pubDate).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : ''}</div>
-        ${n.tickers?.length ? `<div class="news-tickers">${n.tickers.slice(0,4).map(t=>`<span class="news-ticker">${t}</span>`).join('')}</div>` : ''}
+        <a class="news-title" href="${n.link||'#'}" target="_blank">${n.title||'—'}</a>
+        <div class="news-meta">${n.source||''} ${n.pubDate?'· '+new Date(n.pubDate).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):''}</div>
+        ${n.tickers?.length?`<div class="news-tickers">${n.tickers.slice(0,4).map(t=>`<span class="news-ticker-tag">${t}</span>`).join('')}</div>`:''}
       </div>`).join('')}</div>`;
   } catch(e) {
     document.getElementById('newsPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
@@ -425,9 +444,9 @@ async function loadNews() {
 
 function setState(s, msg='') {
   const m={
-    loading:`<div class="state-msg"><p><span class="spinner"></span>Fetching from Google Finance...</p></div>`,
+    loading:`<div class="state-msg"><p><span class="spinner"></span>Fetching from Finnhub...</p><small>This may take a moment — enriching each stock with volume & news data</small></div>`,
     empty:`<div class="state-msg"><div class="icon">📭</div><p>No gappers matched your filters.</p><small>Try lowering Min Gap % or widening price range.</small></div>`,
-    error:`<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Check your Worker URL and deployment.</small></div>`,
+    error:`<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Check your API key and Worker URL.</small></div>`,
   };
   if(m[s]) document.getElementById('tableContainer').innerHTML=m[s];
 }
@@ -449,8 +468,8 @@ function fmtVol(v) {
 
 function exportCSV() {
   if(!results.length){showToast('No results','');return;}
-  const h='Ticker,Company,Price,Gap%,PrevClose,Volume,Score\n';
-  const r=results.map(s=>`${s.ticker},"${s.company??''}",${s.price??''},${s.gapPct?.toFixed(2)??''},${s.prevClose??''},${s.volume??''},${s.score}`).join('\n');
+  const h='Ticker,Company,Price,Gap%,PrevClose,RelVol,Volume,News,Score\n';
+  const r=results.map(s=>`${s.ticker},"${s.company??''}",${s.price??''},${s.gapPct?.toFixed(2)??''},${s.prevClose??''},${s.relVol?.toFixed(2)??''},${s.volume??''},${s.hasNews?'YES':'NO'},${s.score}`).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([h+r],{type:'text/csv'}));
   a.download=`gap-scan-${new Date().toISOString().slice(0,16).replace('T','_')}.csv`;
@@ -461,10 +480,11 @@ let toastT;
 function showToast(msg,type='') {
   const el=document.getElementById('toast');
   el.textContent=msg; el.className=`toast show ${type}`;
-  clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3000);
+  clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3500);
 }
 
-if(base()) loadSidebar();
+// Auto-load sidebar if everything is already saved
+if (base() && apiKey()) loadSidebar();
 </script>
 </body>
 </html>
