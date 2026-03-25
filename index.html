@@ -18,15 +18,15 @@
   --bg:      #080b0e;
   --surface: #0e1419;
   --surface2:#141c24;
-  --border:  #1a2535;
-  --border2: #243044;
-  --text:    #dde6f0;
-  --muted:   #5a7090;
+  --border:  #1e2d3d;
+  --border2: #2a3f54;
+  --text:    #edf2f7;
+  --muted:   #8ba3bc;
   --accent:  #00e5b0;
-  --accent2: #0ea5e9;
-  --red:     #f43f5e;
-  --yellow:  #f59e0b;
-  --purple:  #8b5cf6;
+  --accent2: #38bdf8;
+  --red:     #f87171;
+  --yellow:  #fbbf24;
+  --purple:  #a78bfa;
   --green:   #00e5b0;
   --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
@@ -59,7 +59,7 @@ body::before {
   z-index: 0;
 }
 
-.wrap { position: relative; z-index: 1; }
+.wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; }
 
 /* ════════════════════════════════════════
    STICKY HEADER
@@ -71,8 +71,14 @@ body::before {
   background: rgba(8,11,14,.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 0 32px;
   height: 56px;
+}
+
+.site-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -150,7 +156,6 @@ body::before {
 ════════════════════════════════════════ */
 .hero {
   padding: 64px 32px 48px;
-  max-width: 900px;
 }
 
 .hero-eyebrow {
@@ -198,7 +203,7 @@ h1 .line2  { display: block; color: var(--muted); font-weight: 600; font-size: .
 
 .hero-sub {
   font-size: 16px;
-  color: var(--muted);
+  color: #a8bfd4;
   max-width: 560px;
   margin-bottom: 28px;
   line-height: 1.7;
@@ -692,7 +697,7 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
   padding: 9px 14px;
   font-family: var(--body);
   font-size: 12px;
-  color: var(--text);
+  color: #c8d8e8;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -713,7 +718,6 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
 ════════════════════════════════════════ */
 .content-sections {
   padding: 0 32px 80px;
-  max-width: 1200px;
 }
 
 .section-divider {
@@ -743,7 +747,7 @@ h2.section-title {
 
 .section-text {
   font-size: 15px;
-  color: var(--muted);
+  color: #a8bfd4;
   max-width: 680px;
   line-height: 1.8;
   margin-bottom: 28px;
@@ -766,7 +770,7 @@ h2.section-title {
 .timing-card.prime { border-color: rgba(0,229,176,.3); background: rgba(0,229,176,.04); }
 .timing-cet { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
 .timing-label { font-size: 13px; color: var(--text); margin-bottom: 4px; }
-.timing-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.timing-desc { font-size: 11px; color: #a8bfd4; line-height: 1.5; }
 .timing-card.prime .timing-cet { color: var(--accent); }
 
 /* Criteria grid */
@@ -799,7 +803,7 @@ h2.section-title {
   color: var(--text);
   margin-bottom: 8px;
 }
-.criteria-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.criteria-desc { font-size: 13px; color: #a8bfd4; line-height: 1.6; }
 
 /* Setup tabs */
 .setup-tabs { display: flex; gap: 0; margin-bottom: 0; border-radius: 8px 8px 0 0; overflow: hidden; border: 1px solid var(--border); border-bottom: none; }
@@ -848,7 +852,7 @@ h2.section-title {
 }
 .step-body { flex: 1; }
 .step-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-.step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.step-desc { font-size: 13px; color: #a8bfd4; line-height: 1.6; }
 .step-desc a { color: var(--accent2); text-decoration: none; }
 .step-desc a:hover { text-decoration: underline; }
 .step-code {
@@ -863,7 +867,59 @@ h2.section-title {
   padding: 4px 10px;
 }
 
-/* FAQ */
+/* Code block */
+.code-block {
+  position: relative;
+  margin-top: 12px;
+  background: #060a0d;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.code-block-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.copy-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(0,229,176,.08);
+  border: 1px solid rgba(0,229,176,.2);
+  border-radius: 3px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .5px;
+}
+.copy-btn:hover { background: rgba(0,229,176,.15); }
+.copy-btn.copied { color: var(--text); background: rgba(0,229,176,.2); }
+.code-block pre {
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #7dd3fc;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.code-block pre .cm { color: var(--muted); }
+.code-block pre .kw { color: #c084fc; }
+.code-block pre .st { color: #86efac; }
 .faq-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .faq-item { border-bottom: 1px solid var(--border); }
 .faq-item:last-child { border-bottom: none; }
@@ -886,7 +942,7 @@ h2.section-title {
 .faq-q:hover { background: var(--surface2); }
 .faq-q .faq-icon { font-family: var(--mono); font-size: 16px; color: var(--accent); transition: transform .2s; flex-shrink: 0; margin-left: 12px; }
 .faq-q.open .faq-icon { transform: rotate(45deg); }
-.faq-a { display: none; padding: 0 20px 16px; font-size: 14px; color: var(--muted); line-height: 1.7; }
+.faq-a { display: none; padding: 0 20px 16px; font-size: 14px; color: #a8bfd4; line-height: 1.7; }
 .faq-a.open { display: block; }
 
 /* Footer */
@@ -899,7 +955,7 @@ h2.section-title {
   flex-wrap: wrap;
   gap: 16px;
 }
-.footer-left { font-size: 12px; color: var(--muted); line-height: 1.6; max-width: 600px; }
+.footer-left { font-size: 12px; color: #8ba3bc; line-height: 1.6; max-width: 600px; }
 .footer-keywords {
   font-family: var(--mono);
   font-size: 10px;
@@ -935,6 +991,7 @@ h2.section-title {
 
 <!-- ══ HEADER ══ -->
 <header class="site-header">
+  <div class="site-header-inner">
   <a href="#" class="logo">
     <div class="logo-mark">G</div>
     <span class="logo-text">Gap<span>Scanner</span></span>
@@ -951,6 +1008,7 @@ h2.section-title {
       <span id="clock">--:--:--</span>
       <span class="mkt-badge" id="mstatus">—</span>
     </div>
+  </div>
   </div>
 </header>
 
@@ -1201,21 +1259,192 @@ h2.section-title {
           <div class="step-num">1</div>
           <div class="step-body">
             <div class="step-title">Maak een gratis Cloudflare account aan</div>
-            <div class="step-desc">Ga naar <a href="https://workers.cloudflare.com" target="_blank">workers.cloudflare.com</a> en maak een gratis account aan. Je hebt 100.000 gratis verzoeken per dag — meer dan genoeg.</div>
+            <div class="step-desc">Ga naar <a href="https://workers.cloudflare.com" target="_blank">workers.cloudflare.com</a> en maak een gratis account aan. Je hebt 100.000 gratis verzoeken per dag — meer dan genoeg voor dagelijks gebruik.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
             <div class="step-title">Maak een nieuwe Worker aan</div>
-            <div class="step-desc">Klik op <strong>Workers & Pages → Create → Create Worker</strong>. Geef hem een naam zoals "gap-scanner".</div>
+            <div class="step-desc">Log in op je Cloudflare dashboard. Klik links op <strong>Workers & Pages</strong> → <strong>Create</strong> → <strong>Create Worker</strong>. Geef hem een naam zoals <span class="step-code">gap-scanner</span> en klik op <strong>Deploy</strong>.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-body">
-            <div class="step-title">Plak de Worker code erin</div>
-            <div class="step-desc">Download het bestand <strong>gap-scanner-worker.js</strong> van GitHub en plak de volledige code in de editor. Klik daarna op <strong>Deploy</strong>.</div>
+            <div class="step-title">Kopieer de Worker code en plak hem erin</div>
+            <div class="step-desc">Klik op <strong>Edit code</strong> in je nieuwe Worker. Verwijder alle bestaande code en plak de onderstaande code erin. Klik daarna op <strong>Deploy</strong>.</div>
+            <div class="code-block">
+              <div class="code-block-header">
+                <span class="code-block-label">gap-scanner-worker.js</span>
+                <button class="copy-btn" onclick="copyCode('workerCode', this)">Kopieer code</button>
+              </div>
+              <pre id="workerCode">// Gap Scanner Worker — Finnhub API + Multi-source News RSS
+// Routes: /scan /market /news /health
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age': '86400',
+};
+
+const FH_BASE = 'https://finnhub.io/api/v1';
+
+const RSS_FEEDS = [
+  { url: 'https://feeds.benzinga.com/benzinga', source: 'Benzinga' },
+  { url: 'https://www.globenewswire.com/RssFeed/industry/9600', source: 'GlobeNewswire' },
+  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss', source: 'PR Newswire' },
+];
+
+export default {
+  async fetch(request) {
+    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    const url = new URL(request.url);
+    const key = url.searchParams.get('key') ?? '';
+    if (url.pathname === '/health') return ok({ ok: true, ts: new Date().toISOString() });
+    if (url.pathname === '/scan')   return handleScan(url, key);
+    if (url.pathname === '/market') return handleMarket(key);
+    if (url.pathname === '/news')   return handleNews(key);
+    return new Response('Gap Scanner Worker — /scan /market /news /health', { headers: CORS });
+  }
+};
+
+async function fh(endpoint, key, params = {}) {
+  if (!key) throw new Error('No API key provided');
+  const u = new URL(`${FH_BASE}${endpoint}`);
+  u.searchParams.set('token', key);
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  const res = await fetch(u.toString(), { headers: { 'User-Agent': 'GapScanner/1.0' } });
+  if (res.status === 401) throw new Error('Invalid API key — check your Finnhub key');
+  if (res.status === 429) throw new Error('Rate limit — wait a moment and try again');
+  if (!res.ok) throw new Error(`Finnhub ${res.status}`);
+  return res.json();
+}
+
+async function fetchAllRSS() {
+  const results = await Promise.allSettled(RSS_FEEDS.map(f => fetchRSS(f.url, f.source)));
+  const seen = new Set(), all = [];
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    for (const item of r.value) {
+      const k = item.title?.slice(0, 60);
+      if (!k || seen.has(k)) continue;
+      seen.add(k); all.push(item);
+    }
+  }
+  return all.sort((a, b) => new Date(b.pubDate||0) - new Date(a.pubDate||0));
+}
+
+async function fetchRSS(url, source) {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml, */*' } });
+    if (!res.ok) return [];
+    return parseRSS(await res.text(), source);
+  } catch(e) { return []; }
+}
+
+function parseRSS(xml, source) {
+  const items = [], strip = s => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim();
+  const itemRe = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+  let m;
+  const SKIP = new Set(['FDA','CEO','CFO','IPO','ETF','NYSE','SEC','USD','GDP','CPI','AI','US','UK','EU','Q1','Q2','Q3','Q4','AM','PM','EST','ET','LLC','INC','LTD','THE','AND','FOR','NEW','NOT','ALL','TOP']);
+  while ((m = itemRe.exec(xml)) !== null) {
+    const c = m[1];
+    const title = strip(c.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '');
+    const link = strip(c.match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1] ?? '');
+    const pubDate = strip(c.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ?? '');
+    if (!title || title.length < 5) continue;
+    const tickers = [...new Set([
+      ...[...(title).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t=>t[1]),
+      ...[...(title).matchAll(/\b([A-Z]{2,5})\b/g)].map(t=>t[1]).filter(t=>!SKIP.has(t)),
+    ])];
+    items.push({ title, link, pubDate, source, tickers });
+  }
+  return items;
+}
+
+async function handleScan(url, key) {
+  if (!key) return err('No API key — enter your Finnhub key on the page');
+  try {
+    const p = url.searchParams;
+    const minGap = parseFloat(p.get('minGap') ?? '10');
+    const minPrice = parseFloat(p.get('minPrice') ?? '1');
+    const maxPrice = parseFloat(p.get('maxPrice') ?? '20');
+    const [finnhubNews, rssItems] = await Promise.all([
+      fh('/news', key, { category: 'general' }).catch(() => []),
+      fetchAllRSS(),
+    ]);
+    const newsMap = {};
+    for (const n of (finnhubNews || [])) {
+      if (!n.related) continue;
+      n.related.split(',').forEach(t => {
+        const sym = t.trim().toUpperCase();
+        if (sym && sym.length <= 6 && /^[A-Z]+$/.test(sym) && !newsMap[sym])
+          newsMap[sym] = { title: n.headline, link: n.url, source: 'Finnhub', pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null };
+      });
+    }
+    for (const item of rssItems) {
+      for (const sym of (item.tickers || [])) {
+        if (!newsMap[sym]) newsMap[sym] = { title: item.title, link: item.link, source: item.source, pubDate: item.pubDate };
+      }
+    }
+    const tickersWithNews = Object.keys(newsMap);
+    if (tickersWithNews.length === 0) return ok({ ok: true, count: 0, stocks: [], scannedAt: new Date().toISOString() });
+    const quoteResults = await Promise.all(
+      tickersWithNews.slice(0, 60).map(sym => fh('/quote', key, { symbol: sym }).then(q => ({ sym, q })).catch(() => null))
+    );
+    const stocks = [];
+    for (const item of quoteResults) {
+      if (!item) continue;
+      const { sym, q } = item;
+      if (!q || !q.c || !q.pc || q.c === 0) continue;
+      const price = q.c, prevClose = q.pc;
+      const changePct = ((price - prevClose) / prevClose) * 100;
+      if (changePct < minGap || price < minPrice || price > maxPrice) continue;
+      const news = newsMap[sym];
+      stocks.push({ ticker: sym, company: '', price: +price.toFixed(2), prevClose: +prevClose.toFixed(2), gapPct: +changePct.toFixed(2), volume: q.v ?? null, relVol: null, hasNews: !!news, headline: news?.title ?? null, newsUrl: news?.link ?? null, newsSource: news?.source ?? null, catalyst: news ? 'news' : 'unknown', score: calcScore(changePct, null, price) });
+    }
+    stocks.sort((a, b) => b.gapPct - a.gapPct);
+    return ok({ ok: true, count: stocks.length, stocks, scannedAt: new Date().toISOString() });
+  } catch(e) { return err(e.message); }
+}
+
+async function handleMarket(key) {
+  if (!key) return err('No API key');
+  try {
+    const [spy, qqq, vix] = await Promise.all([fh('/quote', key, { symbol: 'SPY' }), fh('/quote', key, { symbol: 'QQQ' }), fh('/quote', key, { symbol: 'VIX' }).catch(() => null)]);
+    const fmt = (q, sym) => q ? { symbol: sym, price: q.c, changePct: q.pc > 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : null, prevClose: q.pc } : { symbol: sym, error: 'No data' };
+    return ok({ ok: true, spy: fmt(spy,'SPY'), qqq: fmt(qqq,'QQQ'), vix: fmt(vix,'VIX'), ts: new Date().toISOString() });
+  } catch(e) { return err(e.message); }
+}
+
+async function handleNews(key) {
+  try {
+    const [finnhubNews, rssItems] = await Promise.all([
+      key ? fh('/news', key, { category: 'general' }).catch(() => []) : Promise.resolve([]),
+      fetchAllRSS(),
+    ]);
+    const items = [];
+    for (const n of (finnhubNews || []).slice(0, 20))
+      items.push({ title: n.headline, link: n.url, source: n.source ?? 'Finnhub', pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null, tickers: n.related ? n.related.split(',').map(t => t.trim()).filter(Boolean) : [] });
+    for (const r of rssItems.slice(0, 40))
+      items.push({ title: r.title, link: r.link, source: r.source, pubDate: r.pubDate, tickers: r.tickers ?? [] });
+    return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
+  } catch(e) { return err(e.message); }
+}
+
+function calcScore(gapPct, relVol, price) {
+  let s = Math.min(40, (gapPct / 100) * 40);
+  if (relVol != null) s += Math.min(25, ((relVol - 1) / 9) * 25);
+  if (price >= 2 && price <= 10) s += 10;
+  else if (price > 10 && price <= 20) s += 5;
+  return Math.round(Math.min(100, s));
+}
+
+function ok(data) { return new Response(JSON.stringify(data), { headers: { ...CORS, 'Content-Type': 'application/json' } }); }
+function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } }); }</pre>
+            </div>
           </div>
         </div>
         <div class="step">
@@ -1231,7 +1460,7 @@ h2.section-title {
           <div class="step-num">5</div>
           <div class="step-body">
             <div class="step-title">Voer de URL in de scanner in</div>
-            <div class="step-desc">Plak je Worker URL in het veld "Worker URL instellen" bovenaan deze pagina en klik op Test.</div>
+            <div class="step-desc">Scroll naar boven, open het veld <strong>Worker URL instellen</strong>, plak je URL erin en klik op <strong>Test</strong>. Je ziet "● Verbonden" als alles goed is.</div>
           </div>
         </div>
       </div>
@@ -1242,31 +1471,43 @@ h2.section-title {
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <div class="step-title">Maak een gratis Finnhub account aan</div>
-            <div class="step-desc">Ga naar <a href="https://finnhub.io" target="_blank">finnhub.io</a> en klik op <strong>Get free API key</strong>. Geen creditcard nodig, werkt vanuit heel Europa.</div>
+            <div class="step-title">Ga naar finnhub.io</div>
+            <div class="step-desc">Open <a href="https://finnhub.io" target="_blank">finnhub.io</a> in je browser en klik rechtsboven op <strong>Get free API key</strong>.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <div class="step-title">Kopieer je API key</div>
-            <div class="step-desc">Na registratie zie je direct je API key op het dashboard. Die ziet er zo uit:
-              <span class="step-code">d6mqjdhr01qir35i364g...</span>
-            </div>
+            <div class="step-title">Maak een gratis account aan</div>
+            <div class="step-desc">Vul je naam, e-mailadres en wachtwoord in. <strong>Geen creditcard nodig</strong> — het gratis account werkt volledig vanuit Nederland, België en heel Europa. Je krijgt 50 API verzoeken per minuut gratis.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-body">
-            <div class="step-title">Voer de key in de scanner in</div>
-            <div class="step-desc">Plak je API key in het veld "Finnhub API key invoeren" bovenaan deze pagina. De key wordt opgeslagen in je browser — je hoeft hem maar één keer in te voeren.</div>
+            <div class="step-title">Kopieer je API key van het dashboard</div>
+            <div class="step-desc">Na het inloggen zie je direct je API key op het dashboard. Die ziet er zo uit:</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-block-header">
+                <span class="code-block-label">Voorbeeld API key</span>
+                <button class="copy-btn" onclick="copyCode('apiKeyExample', this)">Kopieer</button>
+              </div>
+              <pre id="apiKeyExample" style="max-height:60px">d6mqjdhr01qir35i364gd6mqjdhr01qir35i3650</pre>
+            </div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">4</div>
           <div class="step-body">
-            <div class="step-title">Klaar — druk op Scannen!</div>
-            <div class="step-desc">Druk op de groene <strong>Scannen</strong> knop. De scanner haalt nu live US beursdata op en toont je de sterkste momentum aandelen van de dag.</div>
+            <div class="step-title">Plak de key in de scanner</div>
+            <div class="step-desc">Scroll naar boven op deze pagina. Open het veld <strong>🔑 Finnhub API key invoeren</strong> en plak je key erin. De key wordt automatisch opgeslagen in je browser — je hoeft hem maar één keer in te voeren. Elke persoon gebruikt zijn eigen key.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Klaar! Druk op Scannen</div>
+            <div class="step-desc">Druk op de groene <strong>▶ Scannen</strong> knop. De scanner haalt nu real-time US beursdata op via Finnhub en toont de sterkste momentum aandelen van vandaag — inclusief nieuws katalysator vanuit Benzinga, GlobeNewswire en PR Newswire.</div>
           </div>
         </div>
       </div>
@@ -1608,19 +1849,58 @@ async function loadNews() {
       try { return new Date(iso).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
       catch(e) { return '—'; }
     };
+    const renderRow = n => `
+      <a class="news-row" href="${n.link||'#'}" target="_blank" rel="noopener">
+        <span class="news-time">${fmtTime(n.pubDate)}</span>
+        <span class="news-source-badge ${sourceClass(n.source)}">${sourceLabel(n.source)}</span>
+        <span class="news-tickers-col">
+          ${(n.tickers||[]).slice(0,3).map(t=>`<span class="news-ticker-chip">${t}</span>`).join('')}
+        </span>
+        <span class="news-headline">${n.title||'—'}</span>
+        <span class="news-arrow">→</span>
+      </a>`;
+
+    const first10  = d.items.slice(0, 15);
+    const rest     = d.items.slice(15, 50);
+    const hasMore  = rest.length > 0;
+
     document.getElementById('newsContainer').innerHTML=`
-      <div class="news-wire">
-        ${d.items.slice(0,40).map(n=>`
-          <a class="news-row" href="${n.link||'#'}" target="_blank" rel="noopener">
-            <span class="news-time">${fmtTime(n.pubDate)}</span>
-            <span class="news-source-badge ${sourceClass(n.source)}">${sourceLabel(n.source)}</span>
-            <span class="news-tickers-col">
-              ${(n.tickers||[]).slice(0,3).map(t=>`<span class="news-ticker-chip">${t}</span>`).join('')}
-            </span>
-            <span class="news-headline">${n.title||'—'}</span>
-            <span class="news-arrow">→</span>
-          </a>`).join('')}
-      </div>`;
+      <div class="news-wire" id="newsWireTop">
+        ${first10.map(renderRow).join('')}
+      </div>
+      ${hasMore ? `
+      <div id="newsMoreSection" style="display:none">
+        <div class="news-wire">
+          ${rest.map(renderRow).join('')}
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border)">
+        <button onclick="toggleMoreNews(this)" style="
+          width:100%; padding:12px 16px;
+          background:none; border:none; cursor:pointer;
+          font-family:var(--mono); font-size:11px;
+          color:var(--muted); letter-spacing:.5px;
+          display:flex; align-items:center; justify-content:center; gap:8px;
+          transition:color .15s;
+        " onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+          <span id="newsMoreIcon">↓</span>
+          <span id="newsMoreLabel">Toon ${rest.length} meer berichten</span>
+        </button>
+      </div>` : ''}`;
+  } catch(e) {
+    document.getElementById('newsContainer').innerHTML=`<div class="state-msg" style="padding:24px"><p style="color:var(--red)">Fout: ${e.message}</p></div>`;
+  }
+}
+
+function toggleMoreNews(btn) {
+  const section = document.getElementById('newsMoreSection');
+  const icon    = document.getElementById('newsMoreIcon');
+  const label   = document.getElementById('newsMoreLabel');
+  const open    = section.style.display === 'none';
+  section.style.display = open ? 'block' : 'none';
+  icon.textContent  = open ? '↑' : '↓';
+  label.textContent = open ? 'Verberg extra berichten' : `Toon meer berichten`;
+}
   } catch(e) {
     document.getElementById('newsContainer').innerHTML=`<div class="state-msg" style="padding:24px"><p style="color:var(--red)">Fout: ${e.message}</p></div>`;
   }
@@ -1659,6 +1939,18 @@ function exportCSV() {
   a.href=URL.createObjectURL(new Blob([h+r],{type:'text/csv'}));
   a.download=`gap-scan-${new Date().toISOString().slice(0,16).replace('T','_')}.csv`;
   a.click(); toast('CSV geëxporteerd','ok');
+}
+
+// ── Copy code ─────────────────────────────────────────────────────────────────
+function copyCode(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Gekopieerd!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Kopieer code'; btn.classList.remove('copied'); }, 2500);
+  }).catch(() => {
+    btn.textContent = 'Kopieer code';
+  });
 }
 
 // ── Setup tabs ────────────────────────────────────────────────────────────────
