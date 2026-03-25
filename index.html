@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gratis Gap Scanner — Momentum Aandelen Vinden | Day Trading Tool</title>
+<title>Gratis Gap Scanner - Momentum Aandelen Vinden | Day Trading Tool</title>
 <meta name="description" content="Vind elke dag de sterkste momentum aandelen met onze gratis gap scanner. Gebaseerd op de strategie van Ross Cameron. Werkt vanuit heel Europa. Geen registratie vereist.">
 <meta name="keywords" content="gap scanner, momentum aandelen, day trading nederland, aandelen screener, gap up aandelen, gratis aandelenscreener, dag trading belgie, ross cameron strategie, amerikaanse beurs scanner">
 <meta name="robots" content="index, follow">
-<meta property="og:title" content="Gratis Gap Scanner — Momentum Aandelen Vinden">
+<meta property="og:title" content="Gratis Gap Scanner - Momentum Aandelen Vinden">
 <meta property="og:description" content="Vind elke dag de sterkste momentum aandelen. Gratis, geen registratie, werkt vanuit heel Europa.">
 <meta property="og:type" content="website">
 <link rel="canonical" href="https://sahadataly.github.io/gap-scanner/">
@@ -59,7 +59,7 @@ body::before {
   z-index: 0;
 }
 
-.wrap { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; }
+.wrap { position: relative; z-index: 1; }
 
 /* ════════════════════════════════════════
    STICKY HEADER
@@ -75,7 +75,7 @@ body::before {
 }
 
 .site-header-inner {
-  max-width: 1400px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px;
   height: 100%;
@@ -157,6 +157,9 @@ body::before {
 .hero {
   padding: 64px 32px 48px;
   text-align: center;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .hero-eyebrow {
@@ -238,6 +241,9 @@ h1 .line2  { display: block; color: var(--muted); font-weight: 600; font-size: .
 ════════════════════════════════════════ */
 .scanner-app {
   padding: 0 32px 48px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Config bars */
@@ -721,6 +727,9 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
 .content-sections {
   padding: 0 32px 80px;
   text-align: center;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .content-sections .section-text {
@@ -999,19 +1008,82 @@ h2.section-title {
 /* Footer */
 .site-footer {
   border-top: 1px solid var(--border);
-  padding: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  padding: 40px 32px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
 }
-.footer-left { font-size: 12px; color: #8ba3bc; line-height: 1.6; max-width: 600px; }
-.footer-keywords {
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.footer-col-title {
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--border2);
-  margin-top: 8px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.footer-col-text {
+  font-size: 13px;
+  color: #8ba3bc;
+  line-height: 1.7;
+}
+
+.footer-col-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.footer-col-links a {
+  font-size: 13px;
+  color: #8ba3bc;
+  text-decoration: none;
+  transition: color .15s;
+}
+
+.footer-col-links a:hover { color: var(--accent); }
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 16px;
+  flex-direction: column;
+  text-align: center;
+}
+
+.footer-disclaimer {
+  font-size: 12px;
+  color: #8ba3bc;
+  line-height: 1.7;
+  max-width: 680px;
+}
+
+.footer-keywords {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: #4a6070;
+  line-height: 1.8;
+  text-align: center;
+}
+
+@media(max-width: 768px) {
+  .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
 }
 
 /* Toast */
@@ -1027,13 +1099,82 @@ h2.section-title {
 .toast.ok  { border-color: rgba(0,229,176,.4); color: var(--accent); }
 .toast.err { border-color: rgba(244,63,94,.4); color: var(--red); }
 
+/* ════════════════════════════════════════
+   TABLET — max 1024px
+════════════════════════════════════════ */
+@media(max-width: 1024px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .timing-grid { grid-template-columns: repeat(2, 1fr); }
+  .criteria-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ════════════════════════════════════════
+   MOBILE — max 768px
+════════════════════════════════════════ */
 @media(max-width: 768px) {
-  .hero, .scanner-app, .content-sections { padding-left: 16px; padding-right: 16px; }
-  .site-header { padding: 0 16px; }
+  /* Header */
+  .site-header-inner { padding: 0 16px; }
   .nav-links { display: none; }
-  .filters-bar { gap: 8px; }
-  .news-row { grid-template-columns: 50px 70px 1fr; }
-  .news-tickers-col, .news-arrow { display: none; }
+  .header-clock { font-size: 11px; gap: 6px; }
+
+  /* Hero */
+  .hero { padding: 40px 16px 32px; }
+  h1 { font-size: 32px; letter-spacing: -1px; }
+  .hero-sub { font-size: 14px; }
+  .hero-badges { gap: 8px; }
+  .badge { font-size: 10px; padding: 4px 10px; }
+
+  /* Scanner */
+  .scanner-app { padding: 0 16px 32px; }
+  .filters-bar { gap: 8px; flex-wrap: wrap; }
+  .filter-group input,
+  .filter-group select { width: 100px; font-size: 11px; }
+  .btn-scan { padding: 8px 16px; font-size: 11px; }
+  .btn-sm { padding: 7px 10px; font-size: 10px; }
+  .config-row { flex-direction: column; align-items: stretch; }
+  .config-row input { min-width: unset; width: 100%; }
+  .config-row label { min-width: unset; }
+  .stats-row { gap: 16px; }
+  .stat-value { font-size: 16px; }
+
+  /* Table */
+  table { min-width: 500px; }
+  td, thead th { padding: 8px 10px; font-size: 11px; }
+
+  /* News */
+  .news-row { grid-template-columns: 46px 72px 1fr 20px; }
+  .news-tickers-col { display: none; }
+  .news-headline { font-size: 11px; }
+  .news-source-legend { display: none; }
+  .news-section-head { flex-wrap: wrap; gap: 8px; }
+
+  /* Content sections */
+  .content-sections { padding: 0 16px 48px; }
+  h2.section-title { font-size: 22px; }
+  .timing-grid { grid-template-columns: 1fr; gap: 10px; }
+  .criteria-grid { grid-template-columns: 1fr; gap: 10px; }
+  .setup-tabs { max-width: 100%; }
+  .tab-content { max-width: 100%; padding: 16px; }
+  .faq-list { max-width: 100%; }
+  .step { gap: 10px; }
+  .code-block pre { font-size: 10px; }
+
+  /* Footer */
+  .site-footer { padding: 24px 16px; flex-direction: column; gap: 12px; }
+}
+
+/* ════════════════════════════════════════
+   SMALL MOBILE — max 480px
+════════════════════════════════════════ */
+@media(max-width: 480px) {
+  h1 { font-size: 26px; }
+  .hero-eyebrow { font-size: 9px; }
+  .news-row { grid-template-columns: 40px 1fr 16px; }
+  .news-source-badge { display: none; }
+  .filters-bar { display: grid; grid-template-columns: 1fr 1fr; }
+  .btn-scan { grid-column: 1 / -1; }
+  .scan-info { grid-column: 1 / -1; margin-left: 0; }
 }
 </style>
 </head>
@@ -1176,7 +1317,7 @@ h2.section-title {
           <div class="state-msg">
             <div class="icon">📡</div>
             <p>Voer je Worker URL en API key in en druk op Scannen.</p>
-            <small>Data via Finnhub API — real-time US aandelen, werkt vanuit heel Europa.</small>
+            <small>Data via Finnhub API. Real-time US aandelen, werkt vanuit heel Europa.</small>
           </div>
         </div>
       </div>
@@ -1263,7 +1404,7 @@ h2.section-title {
       <div class="criteria-card">
         <div class="criteria-num">CRITERIUM 01</div>
         <div class="criteria-title">Prijs $1 – $20</div>
-        <div class="criteria-desc">Lage aandelenprijzen zijn volatieler. Een stijging van $2 naar $4 is al 100% winst — dit trekt veel traders aan en versterkt de beweging.</div>
+        <div class="criteria-desc">Lage aandelenprijzen zijn volatieler. Een stijging van $2 naar $4 is al 100% winst. Dit trekt veel traders aan en versterkt de beweging.</div>
       </div>
       <div class="criteria-card">
         <div class="criteria-num">CRITERIUM 02</div>
@@ -1357,7 +1498,7 @@ export default {
     if (url.pathname === '/scan')   return handleScan(url, key);
     if (url.pathname === '/market') return handleMarket(key);
     if (url.pathname === '/news')   return handleNews(key);
-    return new Response('Gap Scanner Worker — /scan /market /news /health', { headers: CORS });
+    return new Response('Gap Scanner Worker: /scan /market /news /health', { headers: CORS });
   }
 };
 
@@ -1367,8 +1508,8 @@ async function fh(endpoint, key, params = {}) {
   u.searchParams.set('token', key);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'GapScanner/1.0' } });
-  if (res.status === 401) throw new Error('Invalid API key — check your Finnhub key');
-  if (res.status === 429) throw new Error('Rate limit — wait a moment and try again');
+  if (res.status === 401) throw new Error('Ongeldige API key. Controleer je Finnhub key.');
+  if (res.status === 429) throw new Error('Rate limit bereikt. Wacht even en probeer opnieuw.');
   if (!res.ok) throw new Error(`Finnhub ${res.status}`);
   return res.json();
 }
@@ -1416,7 +1557,7 @@ function parseRSS(xml, source) {
 }
 
 async function handleScan(url, key) {
-  if (!key) return err('No API key — enter your Finnhub key on the page');
+  if (!key) return err('Geen API key. Voer je Finnhub key in op de pagina.');
   try {
     const p = url.searchParams;
     const minGap = parseFloat(p.get('minGap') ?? '10');
@@ -1530,7 +1671,7 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
           <div class="step-num">2</div>
           <div class="step-body">
             <div class="step-title">Maak een gratis account aan</div>
-            <div class="step-desc">Vul je naam, e-mailadres en wachtwoord in. <strong>Geen creditcard nodig</strong> — het gratis account werkt volledig vanuit Nederland, België en heel Europa. Je krijgt 50 API verzoeken per minuut gratis.</div>
+            <div class="step-desc">Vul je naam, e-mailadres en wachtwoord in. <strong>Geen creditcard nodig.</strong> Het gratis account werkt volledig vanuit Nederland, België en heel Europa. Je krijgt 50 API verzoeken per minuut gratis.</div>
           </div>
         </div>
         <div class="step">
@@ -1551,14 +1692,14 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
           <div class="step-num">4</div>
           <div class="step-body">
             <div class="step-title">Plak de key in de scanner</div>
-            <div class="step-desc">Scroll naar boven op deze pagina. Open het veld <strong>🔑 Finnhub API key invoeren</strong> en plak je key erin. De key wordt automatisch opgeslagen in je browser — je hoeft hem maar één keer in te voeren. Elke persoon gebruikt zijn eigen key.</div>
+            <div class="step-desc">Scroll naar boven op deze pagina. Open het veld <strong>🔑 Finnhub API key invoeren</strong> en plak je key erin. De key wordt automatisch opgeslagen in je browser. Je hoeft hem maar één keer in te voeren. Elke persoon gebruikt zijn eigen key.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">5</div>
           <div class="step-body">
             <div class="step-title">Klaar! Druk op Scannen</div>
-            <div class="step-desc">Druk op de groene <strong>▶ Scannen</strong> knop. De scanner haalt nu real-time US beursdata op via Finnhub en toont de sterkste momentum aandelen van vandaag — inclusief nieuws katalysator vanuit Benzinga, GlobeNewswire en PR Newswire.</div>
+            <div class="step-desc">Druk op de groene <strong>▶ Scannen</strong> knop. De scanner haalt nu real-time US beursdata op via Finnhub en toont de sterkste momentum aandelen van vandaag, inclusief nieuws katalysator vanuit Benzinga, GlobeNewswire en PR Newswire.</div>
           </div>
         </div>
       </div>
@@ -1580,7 +1721,7 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
           <span class="faq-icon">+</span>
         </button>
         <div class="faq-a">
-          Een gap-up ontstaat wanneer een aandeel significant hoger opent dan het gisteren sloot. Dit gebeurt meestal door nieuws dat buiten beurstijden uitkomt — zoals winstcijfers, een FDA goedkeuring of een overnamebod. De "gap" is letterlijk het gat tussen de slotkoers van gisteren en de openingskoers van vandaag.
+          Een gap-up ontstaat wanneer een aandeel significant hoger opent dan het gisteren sloot. Dit gebeurt meestal door nieuws dat buiten beurstijden uitkomt, zoals winstcijfers, een FDA goedkeuring of een overnamebod. De 'gap' is letterlijk het gat tussen de slotkoers van gisteren en de openingskoers van vandaag.
         </div>
       </div>
       <div class="faq-item">
@@ -1607,7 +1748,7 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
           <span class="faq-icon">+</span>
         </button>
         <div class="faq-a">
-          Relatief volume vergelijkt het huidige handelsvolume met het gemiddelde volume van de afgelopen 50 dagen. Een relatief volume van 5x betekent dat er vandaag 5 keer meer wordt verhandeld dan normaal. Dit is een sterke indicator dat er iets bijzonders aan de hand is met het aandeel — en dat andere traders het ook in de gaten hebben.
+          Relatief volume vergelijkt het huidige handelsvolume met het gemiddelde volume van de afgelopen 50 dagen. Een relatief volume van 5x betekent dat er vandaag 5 keer meer wordt verhandeld dan normaal. Dit is een sterke indicator dat er iets bijzonders aan de hand is met het aandeel, en dat andere traders het ook in de gaten hebben.
         </div>
       </div>
       <div class="faq-item">
@@ -1616,7 +1757,7 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
           <span class="faq-icon">+</span>
         </button>
         <div class="faq-a">
-          Goedkopere aandelen zijn volatieler — ze kunnen in één dag tientallen procenten bewegen. Bovendien zijn het vaak small-cap aandelen met een lage free float (weinig uitstaande aandelen). Als hier plotseling veel vraag naar is, schiet de prijs snel omhoog. Dit creëert de explosieve bewegingen waar momentum traders op jagen.
+          Goedkopere aandelen zijn volatieler en kunnen in één dag tientallen procenten bewegen. Bovendien zijn het vaak small-cap aandelen met een lage free float (weinig uitstaande aandelen). Als hier plotseling veel vraag naar is, schiet de prijs snel omhoog. Dit creëert de explosieve bewegingen waar momentum traders op jagen.
         </div>
       </div>
       <div class="faq-item">
@@ -1625,16 +1766,16 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
           <span class="faq-icon">+</span>
         </button>
         <div class="faq-a">
-          Ja, volledig gratis. Je hebt nodig: een gratis Cloudflare account (100.000 verzoeken/dag gratis) en een gratis Finnhub API key (50 verzoeken/minuut gratis). Geen abonnement, geen creditcard, geen registratie op deze site. Je eigen key betekent ook dat je eigen datasnelheid hebt — niet gedeeld met anderen.
+          Ja, volledig gratis. Je hebt nodig: een gratis Cloudflare account (100.000 verzoeken/dag gratis) en een gratis Finnhub API key (50 verzoeken/minuut gratis). Geen abonnement, geen creditcard, geen registratie op deze site. Je eigen key betekent ook dat je eigen datasnelheid hebt, niet gedeeld met anderen.
         </div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">
-          Mijn dochters willen de scanner ook gebruiken — kan dat?
+          Mijn dochters willen de scanner ook gebruiken. Kan dat?
           <span class="faq-icon">+</span>
         </button>
         <div class="faq-a">
-          Ja! Elke gebruiker maakt zijn eigen gratis Finnhub API key aan en voert die in op de pagina. De key wordt opgeslagen in hun eigen browser — volledig gescheiden van jou. Zelfde Worker URL, eigen key, eigen instellingen. Iedereen kan de scanner tegelijkertijd gebruiken zonder elkaar te beïnvloeden.
+          Ja! Elke gebruiker maakt zijn eigen gratis Finnhub API key aan en voert die in op de pagina. De key wordt opgeslagen in hun eigen browser, volledig gescheiden van jouw instellingen. Zelfde Worker URL, eigen key, eigen instellingen. Iedereen kan de scanner tegelijkertijd gebruiken zonder elkaar te beïnvloeden.
         </div>
       </div>
     </div>
@@ -1644,13 +1785,46 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
 
 <!-- ══ FOOTER ══ -->
 <footer class="site-footer">
-  <div class="footer-left">
-    <strong>Gap Scanner</strong> — Gratis momentum aandelen scanner voor European day traders.<br>
-    Gebaseerd op de strategie van Ross Cameron (Warrior Trading). Geen financieel advies.
-    Handelen brengt risico's met zich mee — u kunt (een deel van) uw inleg verliezen.
+  <div class="footer-grid">
+
+    <div>
+      <div class="footer-col-title">Gap Scanner</div>
+      <div class="footer-col-text">
+        Gratis momentum aandelen scanner voor day traders in Europa.
+        Gebaseerd op de strategie van Ross Cameron (Warrior Trading).
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Navigatie</div>
+      <div class="footer-col-links">
+        <a href="#scanner">Scanner</a>
+        <a href="#wanneer">Wanneer scannen?</a>
+        <a href="#strategie">De strategie</a>
+        <a href="#setup">Instellen</a>
+        <a href="#faq">Veelgestelde vragen</a>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Externe links</div>
+      <div class="footer-col-links">
+        <a href="https://finnhub.io" target="_blank">Finnhub: Gratis API key</a>
+        <a href="https://workers.cloudflare.com" target="_blank">Cloudflare Workers</a>
+        <a href="https://www.warriortrading.com" target="_blank">Warrior Trading</a>
+        <a href="https://finance.yahoo.com" target="_blank">Yahoo Finance</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-bottom">
+    <div class="footer-disclaimer">
+      ⚠️ Geen financieel advies. Handelen brengt risico's met zich mee en u kunt (een deel van) uw inleg verliezen.
+      Deze tool is uitsluitend bedoeld voor educatieve doeleinden.
+    </div>
     <div class="footer-keywords">
-      gap scanner · momentum aandelen · day trading nederland · gratis aandelenscreener ·
-      gap up aandelen · amerikaanse beurs tijden · ross cameron strategie · aandelen screener belgie
+      gap scanner &nbsp;&nbsp; momentum aandelen &nbsp;&nbsp; day trading nederland &nbsp;&nbsp; gratis aandelenscreener &nbsp;&nbsp; gap up aandelen &nbsp;&nbsp; amerikaanse beurs tijden &nbsp;&nbsp; ross cameron strategie &nbsp;&nbsp; aandelen screener belgie
     </div>
   </div>
 </footer>
@@ -1768,7 +1942,7 @@ async function runScan() {
     prevTickers = newSet;
     renderTable();
     updateStats(data.scannedAt);
-    if (!results.length) { setState('empty'); toast('Geen resultaten — verlaag Min Gap %',''); }
+    if (!results.length) { setState('empty'); toast('Geen resultaten. Verlaag Min Gap % of verbreed het prijsbereik.',''); }
     else toast(`${results.length} gapper${results.length!==1?'s':''} gevonden`,'ok');
   } catch(e) {
     setState('error', e.message);
@@ -1855,7 +2029,7 @@ async function loadMarket() {
     };
     const v=d.vix?.price;
     const vc=v==null?'':v<15?'low':v<25?'mid':'high';
-    const vl=v==null?'—':v<15?'Lage volatiliteit':v<25?'Gemiddeld':'Hoog — voorzichtig';
+    const vl=v==null?'—':v<15?'Lage volatiliteit':v<25?'Gemiddeld':'Hoog volatiliteit, wees voorzichtig';
     document.getElementById('marketPanel').innerHTML=`
       ${row('SPY',d.spy)}
       <div class="mkt-sep"></div>
