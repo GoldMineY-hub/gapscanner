@@ -1,223 +1,1073 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gap Scanner</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Gratis Gap Scanner — Momentum Aandelen Vinden | Day Trading Tool</title>
+<meta name="description" content="Vind elke dag de sterkste momentum aandelen met onze gratis gap scanner. Gebaseerd op de strategie van Ross Cameron. Werkt vanuit heel Europa. Geen registratie vereist.">
+<meta name="keywords" content="gap scanner, momentum aandelen, day trading nederland, aandelen screener, gap up aandelen, gratis aandelenscreener, dag trading belgie, ross cameron strategie, amerikaanse beurs scanner">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Gratis Gap Scanner — Momentum Aandelen Vinden">
+<meta property="og:description" content="Vind elke dag de sterkste momentum aandelen. Gratis, geen registratie, werkt vanuit heel Europa.">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://sahadataly.github.io/gap-scanner/">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
 <style>
-  :root {
-    --bg:#0a0d0f; --surface:#111417; --surface2:#181c20;
-    --border:#1f2428; --border2:#2a3038; --text:#e2e8f0; --muted:#64748b;
-    --accent:#00d4aa; --accent2:#0099ff; --green:#00d4aa; --red:#ff4d6a;
-    --yellow:#ffc947; --purple:#a78bfa;
-    --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
-  }
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
-  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-    background-image:linear-gradient(rgba(0,212,170,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.03) 1px,transparent 1px);
-    background-size:40px 40px}
-  .app{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px}
+:root {
+  --bg:      #080b0e;
+  --surface: #0e1419;
+  --surface2:#141c24;
+  --border:  #1a2535;
+  --border2: #243044;
+  --text:    #dde6f0;
+  --muted:   #5a7090;
+  --accent:  #00e5b0;
+  --accent2: #0ea5e9;
+  --red:     #f43f5e;
+  --yellow:  #f59e0b;
+  --purple:  #8b5cf6;
+  --green:   #00e5b0;
+  --mono:    'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --body:    'Inter', sans-serif;
+}
 
-  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
-  .logo{display:flex;align-items:baseline;gap:12px}
-  .logo h1{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--accent)}
-  .logo span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
-  .header-right{display:flex;align-items:center;gap:12px}
-  .clock{font-family:var(--mono);font-size:13px;color:var(--muted)}
-  .mstatus{font-family:var(--mono);font-size:10px;padding:4px 9px;border-radius:3px;letter-spacing:1px;text-transform:uppercase}
-  .mstatus.pre{background:rgba(255,201,71,.12);color:var(--yellow);border:1px solid rgba(255,201,71,.25)}
-  .mstatus.open{background:rgba(0,212,170,.12);color:var(--green);border:1px solid rgba(0,212,170,.25)}
-  .mstatus.closed{background:rgba(100,116,139,.12);color:var(--muted);border:1px solid rgba(100,116,139,.2)}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-  /* Config bars */
-  .config-bar{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .config-bar label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
-  .config-bar input{flex:1;min-width:220px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:7px 11px;font-family:var(--mono);font-size:12px;color:var(--accent);outline:none;transition:border-color .2s}
-  .config-bar input:focus{border-color:var(--accent)}
-  .config-bar input::placeholder{color:var(--muted)}
-  .config-bar input.key-input{color:var(--yellow)}
-  .config-bar input.key-input:focus{border-color:var(--yellow)}
+html { scroll-behavior: smooth; }
 
-  .status-badge{font-family:var(--mono);font-size:11px;white-space:nowrap}
-  .status-badge.ok{color:var(--green)} .status-badge.err{color:var(--red)} .status-badge.idle{color:var(--muted)}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
 
-  .key-note{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
-  .key-note a{color:var(--accent2);text-decoration:none}
-  .key-note a:hover{text-decoration:underline}
+/* ── Background texture ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,229,176,.06), transparent),
+    linear-gradient(rgba(0,229,176,.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,176,.015) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
-  @media(max-width:1100px){.layout{grid-template-columns:1fr}}
+.wrap { position: relative; z-index: 1; }
 
-  .controls{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-bottom:14px}
-  .cg{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:11px 13px}
-  .cg label{display:block;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
-  .cg input,.cg select{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:6px 9px;font-family:var(--mono);font-size:12px;color:var(--text);outline:none}
-  .cg input:focus,.cg select:focus{border-color:var(--accent)}
-  .cg select option{background:var(--surface2)}
+/* ════════════════════════════════════════
+   STICKY HEADER
+════════════════════════════════════════ */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,11,14,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-  .actions{display:flex;gap:9px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
-  .btn{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:9px 18px;border-radius:4px;border:none;cursor:pointer;transition:all .15s}
-  .btn-primary{background:var(--accent);color:#000}
-  .btn-primary:hover{background:#00f0c2;transform:translateY(-1px)}
-  .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
-  .btn-sec{background:transparent;color:var(--muted);border:1px solid var(--border2)}
-  .btn-sec:hover{border-color:var(--accent);color:var(--accent)}
-  .scan-info{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:auto}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
 
-  .stats-row{display:flex;gap:22px;margin-bottom:14px;flex-wrap:wrap}
-  .stat{display:flex;flex-direction:column;gap:3px}
-  .stat-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
-  .stat-value{font-family:var(--mono);font-size:18px;font-weight:600}
-  .stat-value.g{color:var(--green)} .stat-value.m{font-size:13px;color:var(--muted)}
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+  font-family: var(--mono);
+}
 
-  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden}
-  .table-head{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border)}
-  .table-head h2{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-  .rcount{font-family:var(--mono);font-size:10px;color:var(--muted)}
-  .tbl-scroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;min-width:800px}
-  thead th{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
-  thead th:hover{color:var(--accent)} thead th.sorted{color:var(--accent)}
-  tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
-  tbody tr:hover{background:var(--surface2)} tbody tr:last-child{border-bottom:none}
-  tbody tr.new-entry{animation:flash 1.2s ease-out}
-  @keyframes flash{0%{background:rgba(0,212,170,.12)}100%{background:transparent}}
-  td{padding:10px 12px;font-family:var(--mono);font-size:12px;white-space:nowrap}
-  .td-ticker{font-weight:600;font-size:13px;color:var(--accent2)}
-  .td-gap{font-weight:600;color:var(--green)}
-  .td-muted{color:var(--muted);font-size:11px}
-  .td-rv{color:var(--purple)}
-  .td-pm{color:var(--yellow)}
-  .atag{display:inline-block;font-size:8px;padding:2px 5px;border-radius:2px;letter-spacing:1px;text-transform:uppercase;margin-left:5px;font-weight:600}
-  .atag.hot{background:rgba(255,77,106,.15);color:var(--red);border:1px solid rgba(255,77,106,.3)}
-  .atag.new{background:rgba(0,212,170,.15);color:var(--green);border:1px solid rgba(0,212,170,.3)}
-  .score-bar{display:flex;align-items:center;gap:7px}
-  .score-track{width:48px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden}
-  .score-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-  .score-num{font-size:10px;color:var(--muted);width:22px}
-  .news-tag{font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(0,212,170,.12);color:var(--green);border:1px solid rgba(0,212,170,.25);cursor:pointer;font-family:var(--mono)}
-  .news-tag:hover{background:rgba(0,212,170,.2)}
-  .no-news{font-size:10px;color:var(--border2);font-family:var(--mono)}
+.logo-text {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.3px;
+}
 
-  .state-msg{padding:48px 20px;text-align:center}
-  .state-msg .icon{font-size:30px;margin-bottom:10px;opacity:.4}
-  .state-msg p{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:5px}
-  .state-msg small{font-size:10px;color:var(--border2);font-family:var(--mono)}
-  .spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:7px}
-  @keyframes spin{to{transform:rotate(360deg)}}
+.logo-text span { color: var(--accent); }
 
-  .sidebar{display:flex;flex-direction:column;gap:14px;position:sticky;top:20px}
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden}
-  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
-  .panel-head h3{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
-  .panel-head button{font-family:var(--mono);font-size:9px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:3px}
-  .panel-head button:hover{color:var(--accent)}
-  .panel-body{padding:12px 14px}
-  .panel-loading{padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.header-right { display: flex; align-items: center; gap: 20px; }
 
-  .mkt-grid{display:flex;flex-direction:column;gap:10px}
-  .mkt-row{display:flex;align-items:center;justify-content:space-between}
-  .mkt-sym{font-family:var(--mono);font-size:13px;font-weight:600}
-  .mkt-vals{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-  .mkt-price{font-family:var(--mono);font-size:13px}
-  .mkt-chg{font-family:var(--mono);font-size:11px}
-  .mkt-chg.pos{color:var(--green)} .mkt-chg.neg{color:var(--red)}
-  .mkt-sep{height:1px;background:var(--border);margin:4px 0}
-  .vix-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-  .vix-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
-  .vix-val{font-family:var(--mono);font-size:16px;font-weight:600}
-  .vix-val.low{color:var(--green)} .vix-val.mid{color:var(--yellow)} .vix-val.high{color:var(--red)}
-  .vix-desc{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px}
+.nav-links { display: flex; gap: 24px; }
+.nav-links a {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--accent); }
 
-  .news-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-  .news-item{border:1px solid var(--border);border-radius:6px;padding:12px 14px;background:var(--surface2);transition:border-color .15s}
-  .news-item:hover{border-color:var(--accent2)}
-  .news-title{font-family:var(--sans);font-size:12px;color:var(--text);line-height:1.5;text-decoration:none;display:block;margin-bottom:6px}
-  .news-title:hover{color:var(--accent)}
-  .news-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:4px}
-  .news-tickers{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
-  .news-ticker-tag{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(0,153,255,.1);color:var(--accent2);border:1px solid rgba(0,153,255,.2)}
+.header-clock {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  .toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:10px 15px;font-family:var(--mono);font-size:11px;color:var(--text);transform:translateY(60px);opacity:0;transition:all .25s;z-index:100;max-width:300px}
-  .toast.show{transform:translateY(0);opacity:1}
-  .toast.error{border-color:rgba(255,77,106,.4);color:var(--red)}
-  .toast.success{border-color:rgba(0,212,170,.4);color:var(--green)}
+.mkt-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.mkt-badge.pre    { background: rgba(245,158,11,.12);  color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
+.mkt-badge.open   { background: rgba(0,229,176,.12);   color: var(--green);  border: 1px solid rgba(0,229,176,.3); }
+.mkt-badge.closed { background: rgba(90,112,144,.12);  color: var(--muted);  border: 1px solid rgba(90,112,144,.2); }
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+.hero {
+  padding: 64px 32px 48px;
+  max-width: 900px;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  padding: 5px 12px;
+  background: rgba(0,229,176,.08);
+  border: 1px solid rgba(0,229,176,.2);
+  border-radius: 100px;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.7); }
+}
+
+h1 {
+  font-family: var(--display);
+  font-size: clamp(32px, 5vw, 54px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+h1 .accent { color: var(--accent); }
+h1 .line2  { display: block; color: var(--muted); font-weight: 600; font-size: .7em; letter-spacing: -.5px; margin-top: 6px; }
+
+.hero-sub {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 560px;
+  margin-bottom: 28px;
+  line-height: 1.7;
+}
+
+.hero-badges {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  letter-spacing: .5px;
+}
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* ════════════════════════════════════════
+   SCANNER APP
+════════════════════════════════════════ */
+.scanner-app {
+  padding: 0 32px 48px;
+}
+
+/* Config bars */
+.config-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.config-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+}
+.config-toggle:hover { background: var(--surface2); }
+
+.config-toggle-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.config-toggle-label .status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border2);
+}
+.config-toggle-label .status-dot.set { background: var(--accent); }
+
+.config-toggle-arrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  transition: transform .2s;
+}
+.config-toggle-arrow.open { transform: rotate(180deg); }
+
+.config-body {
+  padding: 0 16px 14px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+}
+.config-body.open { display: flex; }
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.config-row label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.config-row input {
+  flex: 1;
+  min-width: 240px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  outline: none;
+  transition: border-color .2s;
+}
+.config-row input.key { color: var(--yellow); }
+.config-row input:focus { border-color: var(--accent); }
+.config-row input.key:focus { border-color: var(--yellow); }
+.config-row input::placeholder { color: var(--border2); }
+
+.config-note {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.config-note a { color: var(--accent2); text-decoration: none; }
+.config-note a:hover { text-decoration: underline; }
+
+.wstatus { font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+.wstatus.ok  { color: var(--green); }
+.wstatus.err { color: var(--red); }
+.wstatus.idle{ color: var(--muted); }
+
+/* Filters */
+.filters-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-group label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.filter-group input, .filter-group select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  width: 120px;
+  transition: border-color .2s;
+}
+.filter-group select { width: 130px; }
+.filter-group input:focus, .filter-group select:focus { border-color: var(--accent); }
+.filter-group select option { background: var(--surface2); }
+
+.btn-scan {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 9px 24px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+.btn-scan:hover { background: #00ffbf; transform: translateY(-1px); }
+.btn-scan:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+.btn-sm {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+.scan-info { font-family: var(--mono); font-size: 10px; color: var(--muted); align-self: flex-end; margin-left: auto; }
+
+/* Stats */
+.stats-row {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.stat-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+.stat-value { font-family: var(--mono); font-size: 20px; font-weight: 600; }
+.stat-value.g { color: var(--accent); }
+.stat-value.s { font-size: 13px; color: var(--muted); }
+
+/* Main layout */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 14px;
+  margin-bottom: 14px;
+  align-items: start;
+}
+@media(max-width:1100px){ .main-layout{ grid-template-columns:1fr; } }
+
+/* Table */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.table-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.table-card-head h2 {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rcount { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+.tbl-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 700px; }
+thead th {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 9px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color .15s;
+}
+thead th:hover { color: var(--accent); }
+thead th.sorted { color: var(--accent); }
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+  cursor: pointer;
+}
+tbody tr:hover { background: var(--surface2); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr.new-entry { animation: rowFlash 1.2s ease-out; }
+@keyframes rowFlash { 0%{ background: rgba(0,229,176,.1); } 100%{ background: transparent; } }
+
+td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.td-ticker { font-weight: 600; font-size: 13px; color: var(--accent2); }
+.td-gap { font-weight: 600; color: var(--accent); }
+.td-muted { color: var(--muted); font-size: 11px; }
+
+.atag {
+  display: inline-block;
+  font-size: 8px; padding: 2px 5px; border-radius: 2px;
+  letter-spacing: 1px; text-transform: uppercase;
+  margin-left: 5px; font-weight: 600;
+}
+.atag.hot { background: rgba(244,63,94,.15); color: var(--red); border: 1px solid rgba(244,63,94,.3); }
+.atag.new { background: rgba(0,229,176,.15); color: var(--green); border: 1px solid rgba(0,229,176,.3); }
+
+.score-bar { display: flex; align-items: center; gap: 7px; }
+.score-track { width: 44px; height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.score-fill { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.score-num { font-size: 10px; color: var(--muted); width: 22px; }
+
+.news-pill {
+  font-family: var(--mono);
+  font-size: 9px; padding: 3px 8px; border-radius: 3px;
+  background: rgba(0,229,176,.1); color: var(--accent);
+  border: 1px solid rgba(0,229,176,.2);
+  cursor: pointer; white-space: nowrap;
+}
+.news-pill:hover { background: rgba(0,229,176,.18); }
+.no-cat { font-size: 10px; color: var(--border2); }
+
+/* State messages */
+.state-msg { padding: 52px 20px; text-align: center; }
+.state-msg .icon { font-size: 28px; margin-bottom: 12px; opacity: .3; }
+.state-msg p { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.state-msg small { font-size: 10px; color: var(--border); font-family: var(--mono); }
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid var(--border2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite;
+  vertical-align: middle; margin-right: 7px;
+}
+@keyframes spin { to{ transform: rotate(360deg); } }
+
+/* ── SIDEBAR ── */
+.sidebar { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 70px; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.panel-head h3 {
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+}
+.panel-head button {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 3px;
+}
+.panel-head button:hover { color: var(--accent); }
+.panel-body { padding: 12px 14px; }
+.panel-loading { padding: 18px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+.mkt-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mkt-row:last-child { margin-bottom: 0; }
+.mkt-sym { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.mkt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.mkt-price { font-family: var(--mono); font-size: 13px; }
+.mkt-chg { font-family: var(--mono); font-size: 11px; }
+.mkt-chg.pos { color: var(--accent); }
+.mkt-chg.neg { color: var(--red); }
+.mkt-sep { height: 1px; background: var(--border); margin: 8px 0; }
+
+.vix-block { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.vix-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+.vix-desc { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-top: 2px; }
+.vix-val { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+.vix-val.low { color: var(--accent); }
+.vix-val.mid { color: var(--yellow); }
+.vix-val.high { color: var(--red); }
+
+/* ── NEWS FEED ── */
+.news-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 48px;
+}
+
+.news-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.news-section-head h2 {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.news-section-head h2::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.news-source-legend {
+  display: flex;
+  gap: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: .5px;
+}
+
+.legend-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+
+/* News wire — Bloomberg terminal style */
+.news-wire {
+  display: flex;
+  flex-direction: column;
+}
+
+.news-row {
+  display: grid;
+  grid-template-columns: 52px 90px 80px 1fr auto;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+  text-decoration: none;
+  align-items: center;
+}
+.news-row:last-child { border-bottom: none; }
+.news-row:hover { background: var(--surface2); }
+
+.news-time {
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.news-source-badge {
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.news-source-badge.benzinga  { color: #22d3ee; }
+.news-source-badge.globe     { color: #60a5fa; }
+.news-source-badge.prnews    { color: #f59e0b; }
+.news-source-badge.finnhub   { color: var(--muted); }
+
+.news-tickers-col {
+  padding: 9px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.news-ticker-chip {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: rgba(14,165,233,.12);
+  color: var(--accent2);
+  border: 1px solid rgba(14,165,233,.2);
+  white-space: nowrap;
+}
+
+.news-headline {
+  padding: 9px 14px;
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.news-row:hover .news-headline { color: var(--accent); }
+
+.news-arrow {
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--border2);
+}
+.news-row:hover .news-arrow { color: var(--accent); }
+
+/* ════════════════════════════════════════
+   CONTENT SECTIONS (SEO)
+════════════════════════════════════════ */
+.content-sections {
+  padding: 0 32px 80px;
+  max-width: 1200px;
+}
+
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 56px 0;
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+h2.section-title {
+  font-family: var(--display);
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700;
+  letter-spacing: -.5px;
+  color: var(--text);
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.section-text {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 680px;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+
+/* Timing table */
+.timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.timing-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.timing-card.prime { border-color: rgba(0,229,176,.3); background: rgba(0,229,176,.04); }
+.timing-cet { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+.timing-label { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.timing-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.timing-card.prime .timing-cet { color: var(--accent); }
+
+/* Criteria grid */
+.criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.criteria-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  transition: border-color .2s;
+}
+.criteria-card:hover { border-color: var(--accent); }
+.criteria-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.criteria-title {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.criteria-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* Setup tabs */
+.setup-tabs { display: flex; gap: 0; margin-bottom: 0; border-radius: 8px 8px 0 0; overflow: hidden; border: 1px solid var(--border); border-bottom: none; }
+.tab-btn {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  background: var(--surface);
+  color: var(--muted);
+  border: none;
+  cursor: pointer;
+  transition: all .15s;
+  border-right: 1px solid var(--border);
+}
+.tab-btn:last-child { border-right: none; }
+.tab-btn.active { background: var(--surface2); color: var(--accent); }
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+.tab-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  padding: 24px;
+  display: none;
+}
+.tab-content.active { display: block; }
+
+.steps { display: flex; flex-direction: column; gap: 16px; }
+.step { display: flex; gap: 14px; align-items: flex-start; }
+.step-num {
+  width: 28px; height: 28px;
+  background: rgba(0,229,176,.12);
+  border: 1px solid rgba(0,229,176,.3);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.step-body { flex: 1; }
+.step-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.step-desc a { color: var(--accent2); text-decoration: none; }
+.step-desc a:hover { text-decoration: underline; }
+.step-code {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(0,229,176,.08);
+  border: 1px solid rgba(0,229,176,.2);
+  border-radius: 4px;
+  padding: 4px 10px;
+}
+
+/* FAQ */
+.faq-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-item:last-child { border-bottom: none; }
+.faq-q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  transition: background .15s;
+  font-family: var(--body);
+}
+.faq-q:hover { background: var(--surface2); }
+.faq-q .faq-icon { font-family: var(--mono); font-size: 16px; color: var(--accent); transition: transform .2s; flex-shrink: 0; margin-left: 12px; }
+.faq-q.open .faq-icon { transform: rotate(45deg); }
+.faq-a { display: none; padding: 0 20px 16px; font-size: 14px; color: var(--muted); line-height: 1.7; }
+.faq-a.open { display: block; }
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-left { font-size: 12px; color: var(--muted); line-height: 1.6; max-width: 600px; }
+.footer-keywords {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--border2);
+  margin-top: 8px;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 16px;
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+  transform: translateY(60px); opacity: 0;
+  transition: all .25s; z-index: 200; max-width: 300px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok  { border-color: rgba(0,229,176,.4); color: var(--accent); }
+.toast.err { border-color: rgba(244,63,94,.4); color: var(--red); }
+
+@media(max-width: 768px) {
+  .hero, .scanner-app, .content-sections { padding-left: 16px; padding-right: 16px; }
+  .site-header { padding: 0 16px; }
+  .nav-links { display: none; }
+  .filters-bar { gap: 8px; }
+  .news-row { grid-template-columns: 50px 70px 1fr; }
+  .news-tickers-col, .news-arrow { display: none; }
+}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="wrap">
 
-  <header>
-    <div class="logo">
-      <h1>⬛ GAP SCANNER</h1>
-      <span>Finnhub · Real-time US Data</span>
+<!-- ══ HEADER ══ -->
+<header class="site-header">
+  <a href="#" class="logo">
+    <div class="logo-mark">G</div>
+    <span class="logo-text">Gap<span>Scanner</span></span>
+  </a>
+  <div class="header-right">
+    <nav class="nav-links">
+      <a href="#scanner">Scanner</a>
+      <a href="#wanneer">Wanneer</a>
+      <a href="#strategie">Strategie</a>
+      <a href="#setup">Instellen</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="header-clock">
+      <span id="clock">--:--:--</span>
+      <span class="mkt-badge" id="mstatus">—</span>
     </div>
-    <div class="header-right">
-      <span class="clock" id="clock">--:--:-- ET</span>
-      <span class="mstatus" id="mstatus">—</span>
-    </div>
-  </header>
+  </div>
+</header>
 
-  <!-- Worker URL -->
-  <div class="config-bar">
-    <label>Worker URL</label>
-    <input type="text" id="workerUrl" placeholder="https://gap-scanner.yourname.workers.dev" autocomplete="off">
-    <button class="btn btn-sec" onclick="testWorker()">Test</button>
-    <span class="status-badge idle" id="wstatus">● Not tested</span>
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-eyebrow">Live momentum scanner</div>
+  <h1>
+    Gratis <span class="accent">Gap Scanner</span>
+    <span class="line2">Vind momentum aandelen in real-time</span>
+  </h1>
+  <p class="hero-sub">
+    Gebaseerd op de bewezen strategie van Ross Cameron. Scan elke ochtend
+    de Amerikaanse beurs op gap-up aandelen met nieuws, volume en momentum —
+    volledig gratis, geen registratie vereist.
+  </p>
+  <div class="hero-badges">
+    <span class="badge"><span class="dot"></span> Gratis te gebruiken</span>
+    <span class="badge"><span class="dot"></span> Werkt vanuit heel Europa</span>
+    <span class="badge"><span class="dot"></span> Geen registratie</span>
+    <span class="badge"><span class="dot"></span> Ross Cameron methode</span>
+  </div>
+</section>
+
+<!-- ══ SCANNER ══ -->
+<section class="scanner-app" id="scanner">
+
+  <!-- Config: Worker -->
+  <div class="config-section" style="margin-bottom:8px">
+    <div class="config-toggle" onclick="toggleConfig('worker')">
+      <span class="config-toggle-label">
+        <span class="status-dot" id="workerDot"></span>
+        ⚙ Worker URL instellen
+      </span>
+      <span class="config-toggle-arrow" id="workerArrow">↓</span>
+    </div>
+    <div class="config-body" id="workerBody">
+      <div class="config-row">
+        <label>Worker URL</label>
+        <input type="text" id="workerUrl" placeholder="https://gap-scanner.jouwnaam.workers.dev" autocomplete="off">
+        <button class="btn-sm" onclick="testWorker()">Test</button>
+        <span class="wstatus idle" id="wstatus">● Niet getest</span>
+      </div>
+      <div class="config-row">
+        <label style="min-width:90px"></label>
+        <span class="config-note">Nog geen Worker? Zie <a href="#setup">instellen</a> hieronder — gratis via <a href="https://workers.cloudflare.com" target="_blank">Cloudflare</a>.</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Finnhub API Key -->
-  <div class="config-bar">
-    <label>Finnhub API Key</label>
-    <input type="password" id="apiKey" class="key-input" placeholder="Paste your free Finnhub API key here..." autocomplete="off">
-    <span class="key-note">Free key at <a href="https://finnhub.io" target="_blank">finnhub.io</a> — no credit card, works worldwide</span>
+  <!-- Config: API Key -->
+  <div class="config-section" style="margin-bottom:14px">
+    <div class="config-toggle" onclick="toggleConfig('key')">
+      <span class="config-toggle-label">
+        <span class="status-dot" id="keyDot"></span>
+        🔑 Finnhub API key invoeren
+      </span>
+      <span class="config-toggle-arrow" id="keyArrow">↓</span>
+    </div>
+    <div class="config-body" id="keyBody">
+      <div class="config-row">
+        <label>API Key</label>
+        <input type="password" id="apiKey" class="key" placeholder="Plak hier je gratis Finnhub API key..." autocomplete="off">
+        <span class="config-note">Gratis key ophalen op <a href="https://finnhub.io" target="_blank">finnhub.io</a> — geen creditcard, werkt vanuit Europa.</span>
+      </div>
+    </div>
   </div>
 
-  <div class="layout">
-    <div>
-      <div class="controls">
-        <div class="cg"><label>Min Gap %</label><input type="number" id="minGap" value="10" min="1" step="1"></div>
-        <div class="cg"><label>Min Price ($)</label><input type="number" id="minPrice" value="1" min="0.1" step="0.1"></div>
-        <div class="cg"><label>Max Price ($)</label><input type="number" id="maxPrice" value="20" min="1" step="0.5"></div>
-        <div class="cg">
-          <label>Auto Refresh</label>
-          <select id="autoRefresh" onchange="setAutoRefresh(this.value)">
-            <option value="0">Off</option>
-            <option value="60">1 min</option>
-            <option value="120">2 min</option>
-            <option value="300">5 min</option>
-          </select>
-        </div>
-      </div>
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>Min Gap %</label>
+      <input type="number" id="minGap" value="10" min="1" step="1">
+    </div>
+    <div class="filter-group">
+      <label>Min Prijs ($)</label>
+      <input type="number" id="minPrice" value="1" min="0.1" step="0.1">
+    </div>
+    <div class="filter-group">
+      <label>Max Prijs ($)</label>
+      <input type="number" id="maxPrice" value="20" min="1" step="0.5">
+    </div>
+    <div class="filter-group">
+      <label>Auto Refresh</label>
+      <select id="autoRefresh" onchange="setAutoRefresh(this.value)">
+        <option value="0">Uit</option>
+        <option value="60">1 min</option>
+        <option value="120">2 min</option>
+        <option value="300">5 min</option>
+      </select>
+    </div>
+    <button class="btn-scan" id="scanBtn" onclick="runScan()">▶ Scannen</button>
+    <button class="btn-sm" onclick="clearResults()">Wissen</button>
+    <button class="btn-sm" onclick="exportCSV()">↓ CSV</button>
+    <span class="scan-info" id="scanInfo"></span>
+  </div>
 
-      <div class="actions">
-        <button class="btn btn-primary" id="scanBtn" onclick="runScan()">▶ Run Scan</button>
-        <button class="btn btn-sec" onclick="clearResults()">Clear</button>
-        <button class="btn btn-sec" onclick="exportCSV()">↓ CSV</button>
-        <span class="scan-info" id="scanInfo"></span>
-      </div>
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow" style="display:none">
+    <div class="stat"><span class="stat-label">Gevonden</span><span class="stat-value" id="sCount">0</span></div>
+    <div class="stat"><span class="stat-label">Gem. Gap</span><span class="stat-value g" id="sAvg">—</span></div>
+    <div class="stat"><span class="stat-label">Top Gap</span><span class="stat-value g" id="sTop">—</span></div>
+    <div class="stat"><span class="stat-label">Gescand</span><span class="stat-value s" id="sTime">—</span></div>
+  </div>
 
-      <div class="stats-row" id="statsRow" style="display:none">
-        <div class="stat"><span class="stat-label">Gappers</span><span class="stat-value" id="sCount">0</span></div>
-        <div class="stat"><span class="stat-label">Avg Gap</span><span class="stat-value g" id="sAvg">—</span></div>
-        <div class="stat"><span class="stat-label">Top Gap</span><span class="stat-value g" id="sTop">—</span></div>
-        <div class="stat"><span class="stat-label">Scanned</span><span class="stat-value m" id="sTime">—</span></div>
+  <!-- Table + Sidebar -->
+  <div class="main-layout">
+    <div class="table-card">
+      <div class="table-card-head">
+        <h2>Resultaten</h2>
+        <span class="rcount" id="rcount">—</span>
       </div>
-
-      <div class="table-wrap">
-        <div class="table-head">
-          <h2>Results</h2>
-          <span class="rcount" id="rcount">—</span>
-        </div>
-        <div class="tbl-scroll">
-          <div id="tableContainer">
-            <div class="state-msg">
-              <div class="icon">⬛</div>
-              <p>Enter your Worker URL and Finnhub API key, then press Run Scan.</p>
-              <small>Each person uses their own free Finnhub key — get one at finnhub.io</small>
-            </div>
+      <div class="tbl-scroll">
+        <div id="tableContainer">
+          <div class="state-msg">
+            <div class="icon">📡</div>
+            <p>Voer je Worker URL en API key in en druk op Scannen.</p>
+            <small>Data via Finnhub API — real-time US aandelen, werkt vanuit heel Europa.</small>
           </div>
         </div>
       </div>
@@ -225,101 +1075,400 @@
 
     <div class="sidebar">
       <div class="panel">
-        <div class="panel-head"><h3>Market</h3><button onclick="loadMarket()">↻</button></div>
-        <div class="panel-body" id="marketPanel"><div class="panel-loading">Enter API key to load</div></div>
+        <div class="panel-head"><h3>Markt</h3><button onclick="loadMarket()">↻</button></div>
+        <div class="panel-body" id="marketPanel"><div class="panel-loading">Voer API key in</div></div>
       </div>
     </div>
   </div>
 
-  <!-- News — full width below scanner -->
-  <div class="panel" style="margin-top:16px">
-    <div class="panel-head">
-      <h3>Latest News</h3>
-      <button onclick="loadNews()">↻ Refresh</button>
+  <!-- News feed -->
+  <div class="news-section">
+    <div class="news-section-head">
+      <h2>Live Nieuws Feed</h2>
+      <div class="news-source-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#22d3ee"></span>Benzinga</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span>GlobeNewswire</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>PR Newswire</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#5a7090"></span>Finnhub</span>
+        <button class="btn-sm" onclick="loadNews()" style="align-self:center">↻ Vernieuwen</button>
+      </div>
     </div>
-    <div class="panel-body" id="newsPanel"><div class="panel-loading">Enter API key to load</div></div>
+    <div id="newsContainer">
+      <div class="state-msg" style="padding:28px">
+        <p>Nieuws wordt geladen na het invoeren van je API key.</p>
+      </div>
+    </div>
   </div>
+
+</section>
+
+<!-- ══ CONTENT SECTIONS ══ -->
+<div class="content-sections">
+
+  <div class="section-divider"></div>
+
+  <!-- Wanneer scannen -->
+  <section id="wanneer">
+    <div class="section-label">Timing</div>
+    <h2 class="section-title">Wanneer gebruik je de gap scanner?</h2>
+    <p class="section-text">
+      De Amerikaanse aandelenmarkt opent om 15:30 CET (Nederlandse tijd). De beste momentum kansen
+      liggen in het pre-market window en het eerste uur na opening. Dit zijn de optimale tijden vanuit Europa:
+    </p>
+    <div class="timing-grid">
+      <div class="timing-card">
+        <div class="timing-cet">10:00 – 13:00</div>
+        <div class="timing-label">Pre-market voorbereiding</div>
+        <div class="timing-desc">Nieuws breekt, eerste volume zichtbaar. Scan op kandidaten voor je watchlist.</div>
+      </div>
+      <div class="timing-card prime">
+        <div class="timing-cet">13:00 – 15:15 ⭐</div>
+        <div class="timing-label">Beste scan window</div>
+        <div class="timing-desc">Nieuws is actief, volume bouwt op. Ross Cameron scant hier zijn top gappers.</div>
+      </div>
+      <div class="timing-card prime">
+        <div class="timing-cet">15:15 – 15:30 ⭐</div>
+        <div class="timing-label">Finale selectie</div>
+        <div class="timing-desc">Sluit je watchlist. Welke aandelen hebben het sterkste pre-market profiel?</div>
+      </div>
+      <div class="timing-card">
+        <div class="timing-cet">15:30 – 16:30</div>
+        <div class="timing-label">Eerste handelsuur</div>
+        <div class="timing-desc">Markt opent. Dit is het primaire trading window voor momentum strategieën.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Strategie -->
+  <section id="strategie">
+    <div class="section-label">De strategie</div>
+    <h2 class="section-title">Wat is gap trading? De Ross Cameron methode</h2>
+    <p class="section-text">
+      Ross Cameron van Warrior Trading ontwikkelde een systeem om elke dag de sterkste momentum
+      aandelen te vinden. De gap scanner filtert op vier specifieke kenmerken die samen een
+      hoge kans geven op een sterke koersbeweging:
+    </p>
+    <div class="criteria-grid">
+      <div class="criteria-card">
+        <div class="criteria-num">CRITERIUM 01</div>
+        <div class="criteria-title">Prijs $1 – $20</div>
+        <div class="criteria-desc">Lage aandelenprijzen zijn volatieler. Een stijging van $2 naar $4 is al 100% winst — dit trekt veel traders aan en versterkt de beweging.</div>
+      </div>
+      <div class="criteria-card">
+        <div class="criteria-num">CRITERIUM 02</div>
+        <div class="criteria-title">Minimaal 10% gap up</div>
+        <div class="criteria-desc">Het aandeel opent significant hoger dan gisteren. Dit signaleert sterke koopdruk en momentum dat verder kan doorlopen op de handelsdag.</div>
+      </div>
+      <div class="criteria-card">
+        <div class="criteria-num">CRITERIUM 03</div>
+        <div class="criteria-title">Hoog relatief volume</div>
+        <div class="criteria-desc">Vandaag wordt er minstens 5x meer verhandeld dan normaal. Hoog volume bevestigt dat de beweging gedragen wordt door echte interesse.</div>
+      </div>
+      <div class="criteria-card">
+        <div class="criteria-num">CRITERIUM 04</div>
+        <div class="criteria-title">Nieuws katalysator</div>
+        <div class="criteria-desc">Er is een concrete aanleiding: FDA goedkeuring, winstcijfers, contract aankondiging, overname. Zonder nieuws is de kans op een valse beweging groter.</div>
+      </div>
+    </div>
+    <p class="section-text" style="margin-top:0">
+      Onze scanner filtert automatisch op alle vier criteria en toont alleen aandelen die aan het
+      volledige profiel voldoen. Zo vind je snel de "needle in the haystack" zonder handmatig
+      duizenden aandelen te doorzoeken.
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Setup -->
+  <section id="setup">
+    <div class="section-label">Instellen</div>
+    <h2 class="section-title">Hoe stel je de scanner in?</h2>
+    <p class="section-text">
+      De scanner heeft twee gratis componenten nodig: een Cloudflare Worker (fungeert als tussenschakel)
+      en een Finnhub API key (voor de beursdata). Beide zijn volledig gratis en in minuten klaar.
+    </p>
+
+    <div class="setup-tabs">
+      <button class="tab-btn active" onclick="switchTab('worker')">① Cloudflare Worker</button>
+      <button class="tab-btn" onclick="switchTab('finnhub')">② Finnhub API Key</button>
+    </div>
+
+    <div class="tab-content active" id="tab-worker">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Maak een gratis Cloudflare account aan</div>
+            <div class="step-desc">Ga naar <a href="https://workers.cloudflare.com" target="_blank">workers.cloudflare.com</a> en maak een gratis account aan. Je hebt 100.000 gratis verzoeken per dag — meer dan genoeg.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Maak een nieuwe Worker aan</div>
+            <div class="step-desc">Klik op <strong>Workers & Pages → Create → Create Worker</strong>. Geef hem een naam zoals "gap-scanner".</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Plak de Worker code erin</div>
+            <div class="step-desc">Download het bestand <strong>gap-scanner-worker.js</strong> van GitHub en plak de volledige code in de editor. Klik daarna op <strong>Deploy</strong>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Kopieer je Worker URL</div>
+            <div class="step-desc">Na het deployen zie je bovenaan je Worker URL staan. Die ziet er zo uit:
+              <span class="step-code">https://gap-scanner.jouwnaam.workers.dev</span>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Voer de URL in de scanner in</div>
+            <div class="step-desc">Plak je Worker URL in het veld "Worker URL instellen" bovenaan deze pagina en klik op Test.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-finnhub">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Maak een gratis Finnhub account aan</div>
+            <div class="step-desc">Ga naar <a href="https://finnhub.io" target="_blank">finnhub.io</a> en klik op <strong>Get free API key</strong>. Geen creditcard nodig, werkt vanuit heel Europa.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Kopieer je API key</div>
+            <div class="step-desc">Na registratie zie je direct je API key op het dashboard. Die ziet er zo uit:
+              <span class="step-code">d6mqjdhr01qir35i364g...</span>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Voer de key in de scanner in</div>
+            <div class="step-desc">Plak je API key in het veld "Finnhub API key invoeren" bovenaan deze pagina. De key wordt opgeslagen in je browser — je hoeft hem maar één keer in te voeren.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Klaar — druk op Scannen!</div>
+            <div class="step-desc">Druk op de groene <strong>Scannen</strong> knop. De scanner haalt nu live US beursdata op en toont je de sterkste momentum aandelen van de dag.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Veelgestelde vragen</h2>
+    <p class="section-text">Alles wat je wilt weten over gap trading en het gebruik van de scanner.</p>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Wat is een gap-up aandeel?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Een gap-up ontstaat wanneer een aandeel significant hoger opent dan het gisteren sloot. Dit gebeurt meestal door nieuws dat buiten beurstijden uitkomt — zoals winstcijfers, een FDA goedkeuring of een overnamebod. De "gap" is letterlijk het gat tussen de slotkoers van gisteren en de openingskoers van vandaag.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Hoe laat opent de Amerikaanse beurs in Nederland en België?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          De New York Stock Exchange (NYSE) en NASDAQ openen om <strong>15:30 CET</strong> (Nederlandse en Belgische tijd) en sluiten om 22:00 CET. In de zomertijd (CEST) zijn dit 15:30 en 22:00. Pre-market handel start al om 10:00 CET. Het eerste handelsuur (15:30–16:30 CET) is het meest actief en biedt de beste momentum kansen.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is day trading legaal in Nederland en België?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Ja, day trading is volledig legaal in Nederland en België. Je hebt wel een broker nodig die toegang biedt tot de Amerikaanse markten, zoals DEGIRO, LYNX, Interactive Brokers of TradeStation. Let op: winsten uit day trading zijn belastbaar. Raadpleeg een belastingadviseur voor jouw specifieke situatie.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Wat is relatief volume (Rel Vol)?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Relatief volume vergelijkt het huidige handelsvolume met het gemiddelde volume van de afgelopen 50 dagen. Een relatief volume van 5x betekent dat er vandaag 5 keer meer wordt verhandeld dan normaal. Dit is een sterke indicator dat er iets bijzonders aan de hand is met het aandeel — en dat andere traders het ook in de gaten hebben.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Waarom focust Ross Cameron op aandelen onder $20?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Goedkopere aandelen zijn volatieler — ze kunnen in één dag tientallen procenten bewegen. Bovendien zijn het vaak small-cap aandelen met een lage free float (weinig uitstaande aandelen). Als hier plotseling veel vraag naar is, schiet de prijs snel omhoog. Dit creëert de explosieve bewegingen waar momentum traders op jagen.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is de scanner echt gratis?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Ja, volledig gratis. Je hebt nodig: een gratis Cloudflare account (100.000 verzoeken/dag gratis) en een gratis Finnhub API key (50 verzoeken/minuut gratis). Geen abonnement, geen creditcard, geen registratie op deze site. Je eigen key betekent ook dat je eigen datasnelheid hebt — niet gedeeld met anderen.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Mijn dochters willen de scanner ook gebruiken — kan dat?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Ja! Elke gebruiker maakt zijn eigen gratis Finnhub API key aan en voert die in op de pagina. De key wordt opgeslagen in hun eigen browser — volledig gescheiden van jou. Zelfde Worker URL, eigen key, eigen instellingen. Iedereen kan de scanner tegelijkertijd gebruiken zonder elkaar te beïnvloeden.
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
+
+<!-- ══ FOOTER ══ -->
+<footer class="site-footer">
+  <div class="footer-left">
+    <strong>Gap Scanner</strong> — Gratis momentum aandelen scanner voor European day traders.<br>
+    Gebaseerd op de strategie van Ross Cameron (Warrior Trading). Geen financieel advies.
+    Handelen brengt risico's met zich mee — u kunt (een deel van) uw inleg verliezen.
+    <div class="footer-keywords">
+      gap scanner · momentum aandelen · day trading nederland · gratis aandelenscreener ·
+      gap up aandelen · amerikaanse beurs tijden · ross cameron strategie · aandelen screener belgie
+    </div>
+  </div>
+</footer>
+
+</div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
 <script>
-let results = [], prevTickers = new Set(), sortCol = 'gapPct', sortDir = -1, autoTimer = null;
+// ── State ─────────────────────────────────────────────────────────────────────
+let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
-// Persist settings
-const savedWorker = localStorage.getItem('gap_worker_url');
-const savedKey    = localStorage.getItem('gap_finnhub_key');
-if (savedWorker) document.getElementById('workerUrl').value = savedWorker;
-if (savedKey)    document.getElementById('apiKey').value = savedKey;
+// ── Persist ───────────────────────────────────────────────────────────────────
+const $workerUrl = document.getElementById('workerUrl');
+const $apiKey    = document.getElementById('apiKey');
 
-document.getElementById('workerUrl').addEventListener('input', function() {
+const sw = localStorage.getItem('gap_worker_url');
+const sk = localStorage.getItem('gap_finnhub_key');
+if (sw) { $workerUrl.value = sw; updateDot('workerDot', true); }
+if (sk) { $apiKey.value = sk;    updateDot('keyDot', true); }
+
+$workerUrl.addEventListener('input', function() {
   localStorage.setItem('gap_worker_url', this.value.trim());
+  updateDot('workerDot', !!this.value.trim());
 });
-document.getElementById('apiKey').addEventListener('input', function() {
+$apiKey.addEventListener('input', function() {
   localStorage.setItem('gap_finnhub_key', this.value.trim());
+  updateDot('keyDot', !!this.value.trim());
   if (this.value.trim() && base()) loadSidebar();
 });
 
-// Clock
+function updateDot(id, set) {
+  const el = document.getElementById(id);
+  if (el) el.className = 'status-dot' + (set ? ' set' : '');
+}
+
+// ── Config toggles ────────────────────────────────────────────────────────────
+function toggleConfig(which) {
+  const body  = document.getElementById(which === 'worker' ? 'workerBody' : 'keyBody');
+  const arrow = document.getElementById(which === 'worker' ? 'workerArrow' : 'keyArrow');
+  const open  = body.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+// Auto-open config if not set
+if (!sw) toggleConfig('worker');
+else if (!sk) toggleConfig('key');
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
 function updateClock() {
-  const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const et  = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const pad = n => String(n).padStart(2,'0');
-  document.getElementById('clock').textContent = `${pad(et.getHours())}:${pad(et.getMinutes())}:${pad(et.getSeconds())} ET`;
-  const t = et.getHours()*60+et.getMinutes();
+  document.getElementById('clock').textContent =
+    `${pad(et.getHours())}:${pad(et.getMinutes())}:${pad(et.getSeconds())} ET`;
+  const t  = et.getHours()*60 + et.getMinutes();
   const el = document.getElementById('mstatus');
-  if      (t>=240&&t<570)  { el.textContent='Pre-Market'; el.className='mstatus pre'; }
-  else if (t>=570&&t<960)  { el.textContent='Market Open'; el.className='mstatus open'; }
-  else if (t>=960&&t<1200) { el.textContent='After Hours'; el.className='mstatus pre'; }
-  else                     { el.textContent='Closed'; el.className='mstatus closed'; }
+  if      (t>=240&&t<570)  { el.textContent='Pre-Market'; el.className='mkt-badge pre'; }
+  else if (t>=570&&t<960)  { el.textContent='Markt Open'; el.className='mkt-badge open'; }
+  else if (t>=960&&t<1200) { el.textContent='After Hours'; el.className='mkt-badge pre'; }
+  else                     { el.textContent='Gesloten';   el.className='mkt-badge closed'; }
 }
 setInterval(updateClock, 1000); updateClock();
 
-function base() { return document.getElementById('workerUrl').value.trim().replace(/\/$/,''); }
-function apiKey() { return document.getElementById('apiKey').value.trim(); }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function base() { return $workerUrl.value.trim().replace(/\/$/,''); }
+function apiKey(){ return $apiKey.value.trim(); }
 
 async function call(path) {
   const b = base();
-  if (!b) throw new Error('No Worker URL set');
-  const k = apiKey();
+  if (!b) throw new Error('Geen Worker URL ingesteld');
+  const k   = apiKey();
   const sep = path.includes('?') ? '&' : '?';
   const url = k ? `${b}${path}${sep}key=${encodeURIComponent(k)}` : `${b}${path}`;
   const res = await fetch(url);
   const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Worker error');
+  if (!json.ok) throw new Error(json.error || 'Worker fout');
   return json;
 }
 
+// ── Test worker ───────────────────────────────────────────────────────────────
 async function testWorker() {
   const el = document.getElementById('wstatus');
-  el.textContent='● Testing...'; el.className='status-badge idle';
+  el.textContent='● Testen...'; el.className='wstatus idle';
   try {
-    await fetch(`${base()}/health`).then(r => r.json());
-    el.textContent='● Connected'; el.className='status-badge ok';
-    showToast('Worker online ✓','success');
+    await fetch(`${base()}/health`).then(r=>r.json());
+    el.textContent='● Verbonden'; el.className='wstatus ok';
+    toast('Worker online ✓','ok');
     if (apiKey()) loadSidebar();
   } catch(e) {
-    el.textContent='● Failed'; el.className='status-badge err';
-    showToast('Failed: '+e.message,'error');
+    el.textContent='● Mislukt'; el.className='wstatus err';
+    toast('Mislukt: '+e.message,'err');
   }
 }
 
+// ── Auto refresh ──────────────────────────────────────────────────────────────
 function setAutoRefresh(val) {
   clearInterval(autoTimer);
   const s = parseInt(val);
-  if (s>0) { autoTimer=setInterval(runScan,s*1000); showToast(`Auto-refresh every ${s}s`,'success'); }
+  if (s>0) { autoTimer=setInterval(runScan,s*1000); toast(`Auto-refresh elke ${s}s`,'ok'); }
 }
 
+// ── Scan ──────────────────────────────────────────────────────────────────────
 async function runScan() {
-  if (!base())   { showToast('Enter Worker URL first','error'); return; }
-  if (!apiKey()) { showToast('Enter your Finnhub API key first','error'); return; }
-
+  if (!base())   { toast('Voer eerst je Worker URL in','err'); return; }
+  if (!apiKey()) { toast('Voer eerst je Finnhub API key in','err'); return; }
   const minGap   = document.getElementById('minGap').value   || 10;
   const minPrice = document.getElementById('minPrice').value || 1;
   const maxPrice = document.getElementById('maxPrice').value || 20;
-
   const btn = document.getElementById('scanBtn');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Scanning...';
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Scannen...';
   setState('loading');
-
   try {
     const data = await call(`/scan?minGap=${minGap}&minPrice=${minPrice}&maxPrice=${maxPrice}`);
     const newSet = new Set((data.stocks||[]).map(s=>s.ticker));
@@ -327,50 +1476,47 @@ async function runScan() {
     prevTickers = newSet;
     renderTable();
     updateStats(data.scannedAt);
-    if (!results.length) { setState('empty'); showToast('No matches — try lowering Min Gap %',''); }
-    else showToast(`Found ${results.length} gapper${results.length!==1?'s':''}`, 'success');
+    if (!results.length) { setState('empty'); toast('Geen resultaten — verlaag Min Gap %',''); }
+    else toast(`${results.length} gapper${results.length!==1?'s':''} gevonden`,'ok');
   } catch(e) {
     setState('error', e.message);
-    showToast('Error: '+e.message,'error');
+    toast('Fout: '+e.message,'err');
   }
-  btn.disabled=false; btn.innerHTML='▶ Run Scan';
+  btn.disabled=false; btn.innerHTML='▶ Scannen';
 }
 
+// ── Render table ──────────────────────────────────────────────────────────────
 function renderTable() {
   if (!results.length) { setState('empty'); return; }
   document.getElementById('statsRow').style.display='flex';
-  document.getElementById('rcount').textContent=`${results.length} stock${results.length!==1?'s':''}`;
+  document.getElementById('rcount').textContent=`${results.length} aandeel${results.length!==1?'en':''}`;
   const sorted=[...results].sort((a,b)=>sortDir*((b[sortCol]??-Infinity)-(a[sortCol]??-Infinity)));
   const th=(k,l)=>`<th class="${sortCol===k?'sorted':''}" onclick="sortBy('${k}')">${l}${sortCol===k?(sortDir===-1?' ↓':' ↑'):''}</th>`;
   document.getElementById('tableContainer').innerHTML=`
     <table>
       <thead><tr>
         ${th('ticker','Ticker')}
-        ${th('company','Company')}
-        ${th('price','Price')}
         ${th('gapPct','Gap %')}
-        ${th('prevClose','Prev Close')}
-        ${th('relVol','Rel Vol')}
+        ${th('price','Prijs')}
+        ${th('prevClose','Gisteren')}
         ${th('volume','Volume')}
-        <th>News</th>
+        <th>Nieuws</th>
         ${th('score','Score')}
       </tr></thead>
       <tbody>${sorted.map(s=>`
         <tr class="${s.isNew?'new-entry':''}" onclick="window.open('https://finance.yahoo.com/quote/${s.ticker}','_blank')">
           <td class="td-ticker">
             ${s.ticker}
-            ${s.isNew?'<span class="atag new">NEW</span>':''}
+            ${s.isNew?'<span class="atag new">NIEUW</span>':''}
             ${(s.gapPct??0)>30?'<span class="atag hot">HOT</span>':''}
           </td>
-          <td class="td-muted" style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${s.company||'—'}</td>
-          <td>$${s.price?.toFixed(2)??'—'}</td>
           <td class="td-gap">+${s.gapPct?.toFixed(1)??'—'}%</td>
+          <td>$${s.price?.toFixed(2)??'—'}</td>
           <td class="td-muted">$${s.prevClose?.toFixed(2)??'—'}</td>
-          <td class="td-rv">${s.relVol!=null?s.relVol.toFixed(1)+'x':'—'}</td>
           <td class="td-muted">${fmtVol(s.volume)}</td>
           <td>${s.hasNews
-            ?`<span class="news-tag" title="${s.headline||''}" onclick="event.stopPropagation();window.open('${s.newsUrl||'#'}','_blank')">📰 NEWS</span>`
-            :`<span class="no-news">—</span>`}</td>
+            ?`<span class="news-pill" title="${s.headline||''}" onclick="event.stopPropagation();window.open('${s.newsUrl||'#'}','_blank')">📰 Nieuws →</span>`
+            :`<span class="no-cat">—</span>`}</td>
           <td>
             <div class="score-bar">
               <div class="score-track"><div class="score-fill" style="width:${s.score}%"></div></div>
@@ -392,14 +1538,16 @@ function updateStats(iso) {
     document.getElementById('sTop').textContent='+'+Math.max(...gaps).toFixed(1)+'%';
   }
   const t=iso?new Date(iso):new Date();
-  document.getElementById('sTime').textContent=t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  document.getElementById('scanInfo').textContent=`Last: ${t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+  const ts=t.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('sTime').textContent=ts;
+  document.getElementById('scanInfo').textContent=`Laatste scan: ${ts}`;
 }
 
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 function loadSidebar() { if(!base()||!apiKey()) return; loadMarket(); loadNews(); }
 
 async function loadMarket() {
-  document.getElementById('marketPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
+  document.getElementById('marketPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Laden...</div>';
   try {
     const d = await call('/market');
     const row=(sym,q)=>{
@@ -407,7 +1555,7 @@ async function loadMarket() {
       const pos=(q.changePct??0)>=0;
       return `<div class="mkt-row">
         <span class="mkt-sym">${sym}</span>
-        <div class="mkt-vals">
+        <div class="mkt-right">
           <span class="mkt-price">${q.price!=null?'$'+q.price.toFixed(2):'—'}</span>
           <span class="mkt-chg ${pos?'pos':'neg'}">${q.changePct!=null?(pos?'+':'')+q.changePct.toFixed(2)+'%':'—'}</span>
         </div>
@@ -415,84 +1563,152 @@ async function loadMarket() {
     };
     const v=d.vix?.price;
     const vc=v==null?'':v<15?'low':v<25?'mid':'high';
-    const vl=v==null?'—':v<15?'Low volatility':v<25?'Moderate':' High — be careful';
+    const vl=v==null?'—':v<15?'Lage volatiliteit':v<25?'Gemiddeld':'Hoog — voorzichtig';
     document.getElementById('marketPanel').innerHTML=`
-      <div class="mkt-grid">
-        ${row('SPY',d.spy)}
-        <div class="mkt-sep"></div>
-        ${row('QQQ',d.qqq)}
-      </div>
-      <div class="vix-row">
-        <div><div class="vix-label">VIX</div><div class="vix-desc">${vl}</div></div>
+      ${row('SPY',d.spy)}
+      <div class="mkt-sep"></div>
+      ${row('QQQ',d.qqq)}
+      <div class="vix-block">
+        <div>
+          <div class="vix-label">VIX Angst Index</div>
+          <div class="vix-desc">${vl}</div>
+        </div>
         <span class="vix-val ${vc}">${v!=null?v.toFixed(2):'—'}</span>
       </div>`;
   } catch(e) {
-    document.getElementById('marketPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
+    document.getElementById('marketPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Fout: ${e.message}</div>`;
   }
 }
 
+// ── News wire ─────────────────────────────────────────────────────────────────
 async function loadNews() {
-  document.getElementById('newsPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Loading...</div>';
+  document.getElementById('newsContainer').innerHTML=`<div class="state-msg" style="padding:24px"><p><span class="spinner"></span>Nieuws laden van Benzinga, GlobeNewswire en PR Newswire...</p></div>`;
   try {
     const d = await call('/news');
-    if(!d.items?.length){document.getElementById('newsPanel').innerHTML='<div class="panel-loading">No news</div>';return;}
-    document.getElementById('newsPanel').innerHTML=`<div class="news-list">${d.items.slice(0,30).map(n=>`
-      <div class="news-item">
-        <a class="news-title" href="${n.link||'#'}" target="_blank">${n.title||'—'}</a>
-        <div class="news-meta">
-          <span style="color:var(--accent2)">${n.source||''}</span>
-          ${n.pubDate?' · '+new Date(n.pubDate).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):''}
-        </div>
-        ${n.tickers?.length?`<div class="news-tickers">${n.tickers.slice(0,5).map(t=>`<span class="news-ticker-tag">${t}</span>`).join('')}</div>`:''}
-      </div>`).join('')}</div>`;
+    if (!d.items?.length) {
+      document.getElementById('newsContainer').innerHTML='<div class="state-msg" style="padding:24px"><p>Geen nieuws gevonden.</p></div>';
+      return;
+    }
+    const sourceClass = src => {
+      const s = (src||'').toLowerCase();
+      if (s.includes('benzinga'))   return 'benzinga';
+      if (s.includes('globe'))      return 'globe';
+      if (s.includes('pr newswire')||s.includes('prnewswire')) return 'prnews';
+      return 'finnhub';
+    };
+    const sourceLabel = src => {
+      const s = (src||'').toLowerCase();
+      if (s.includes('benzinga'))   return 'BENZINGA';
+      if (s.includes('globe'))      return 'GLOBENEWS';
+      if (s.includes('pr newswire')||s.includes('prnewswire')) return 'PR NEWS';
+      return (src||'FINNHUB').toUpperCase().slice(0,9);
+    };
+    const fmtTime = iso => {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+      catch(e) { return '—'; }
+    };
+    document.getElementById('newsContainer').innerHTML=`
+      <div class="news-wire">
+        ${d.items.slice(0,40).map(n=>`
+          <a class="news-row" href="${n.link||'#'}" target="_blank" rel="noopener">
+            <span class="news-time">${fmtTime(n.pubDate)}</span>
+            <span class="news-source-badge ${sourceClass(n.source)}">${sourceLabel(n.source)}</span>
+            <span class="news-tickers-col">
+              ${(n.tickers||[]).slice(0,3).map(t=>`<span class="news-ticker-chip">${t}</span>`).join('')}
+            </span>
+            <span class="news-headline">${n.title||'—'}</span>
+            <span class="news-arrow">→</span>
+          </a>`).join('')}
+      </div>`;
   } catch(e) {
-    document.getElementById('newsPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Error: ${e.message}</div>`;
+    document.getElementById('newsContainer').innerHTML=`<div class="state-msg" style="padding:24px"><p style="color:var(--red)">Fout: ${e.message}</p></div>`;
   }
 }
 
+// ── UI helpers ────────────────────────────────────────────────────────────────
 function setState(s, msg='') {
-  const m={
-    loading:`<div class="state-msg"><p><span class="spinner"></span>Fetching from Finnhub...</p><small>This may take a moment — enriching each stock with volume & news data</small></div>`,
-    empty:`<div class="state-msg"><div class="icon">📭</div><p>No gappers matched your filters.</p><small>Try lowering Min Gap % or widening price range.</small></div>`,
-    error:`<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Check your API key and Worker URL.</small></div>`,
+  const m = {
+    loading: `<div class="state-msg"><p><span class="spinner"></span>Data ophalen via Finnhub...</p><small>Gappers identificeren en nieuws matchen...</small></div>`,
+    empty:   `<div class="state-msg"><div class="icon">📭</div><p>Geen gappers gevonden met jouw filters.</p><small>Verlaag Min Gap % of verbreed het prijsbereik.</small></div>`,
+    error:   `<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Controleer je Worker URL en API key.</small></div>`,
   };
-  if(m[s]) document.getElementById('tableContainer').innerHTML=m[s];
+  if (m[s]) document.getElementById('tableContainer').innerHTML=m[s];
 }
 
 function clearResults() {
   results=[]; prevTickers=new Set();
-  document.getElementById('tableContainer').innerHTML='<div class="state-msg"><div class="icon">⬛</div><p>Cleared.</p></div>';
+  document.getElementById('tableContainer').innerHTML='<div class="state-msg"><div class="icon">📡</div><p>Gewist. Druk op Scannen voor nieuwe resultaten.</p></div>';
   document.getElementById('statsRow').style.display='none';
   document.getElementById('rcount').textContent='—';
   document.getElementById('scanInfo').textContent='';
 }
 
 function fmtVol(v) {
-  if(!v) return '—';
-  if(v>=1e6) return (v/1e6).toFixed(1)+'M';
-  if(v>=1e3) return (v/1e3).toFixed(0)+'K';
+  if (!v) return '—';
+  if (v>=1e6) return (v/1e6).toFixed(1)+'M';
+  if (v>=1e3) return (v/1e3).toFixed(0)+'K';
   return String(v);
 }
 
 function exportCSV() {
-  if(!results.length){showToast('No results','');return;}
-  const h='Ticker,Company,Price,Gap%,PrevClose,RelVol,Volume,News,Score\n';
-  const r=results.map(s=>`${s.ticker},"${s.company??''}",${s.price??''},${s.gapPct?.toFixed(2)??''},${s.prevClose??''},${s.relVol?.toFixed(2)??''},${s.volume??''},${s.hasNews?'YES':'NO'},${s.score}`).join('\n');
+  if (!results.length) { toast('Geen resultaten om te exporteren',''); return; }
+  const h='Ticker,Gap%,Prijs,Gisteren,Volume,Nieuws,Score\n';
+  const r=results.map(s=>`${s.ticker},${s.gapPct?.toFixed(2)??''},${s.price??''},${s.prevClose??''},${s.volume??''},${s.hasNews?'JA':'NEE'},${s.score}`).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([h+r],{type:'text/csv'}));
   a.download=`gap-scan-${new Date().toISOString().slice(0,16).replace('T','_')}.csv`;
-  a.click(); showToast('CSV exported','success');
+  a.click(); toast('CSV geëxporteerd','ok');
 }
 
+// ── Setup tabs ────────────────────────────────────────────────────────────────
+function switchTab(which) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${which}`).classList.add('active');
+}
+
+// ── FAQ ───────────────────────────────────────────────────────────────────────
+function toggleFaq(btn) {
+  const ans = btn.nextElementSibling;
+  const open = ans.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
 let toastT;
-function showToast(msg,type='') {
+function toast(msg, type='') {
   const el=document.getElementById('toast');
   el.textContent=msg; el.className=`toast show ${type}`;
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3500);
 }
 
-// Auto-load sidebar if everything is already saved
+// ── Init ──────────────────────────────────────────────────────────────────────
 if (base() && apiKey()) loadSidebar();
 </script>
+
+<!-- Schema.org structured data for Google -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Gap Scanner",
+  "description": "Gratis momentum aandelen scanner voor day traders in Europa. Gebaseerd op de strategie van Ross Cameron.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "inLanguage": "nl",
+  "audience": {
+    "@type": "Audience",
+    "geographicArea": "Europa"
+  }
+}
+</script>
+
 </body>
 </html>
