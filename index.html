@@ -160,10 +160,26 @@ body::before {
 ════════════════════════════════════════ */
 .hero {
   padding: 64px 32px 48px;
-  text-align: center;
   max-width: 1280px;
   margin-left: auto;
   margin-right: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.hero-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-eyebrow {
@@ -198,7 +214,7 @@ body::before {
 
 h1 {
   font-family: var(--display);
-  font-size: clamp(32px, 5vw, 54px);
+  font-size: clamp(32px, 4vw, 52px);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -1.5px;
@@ -207,22 +223,72 @@ h1 {
 }
 
 h1 .accent { color: var(--accent); }
-h1 .line2  { display: block; color: var(--muted); font-weight: 600; font-size: .7em; letter-spacing: -.5px; margin-top: 6px; }
+h1 .line2  { display: block; color: var(--muted); font-weight: 600; font-size: .65em; letter-spacing: -.5px; margin-top: 8px; }
 
 .hero-sub {
-  font-size: 16px;
+  font-size: 15px;
   color: #a8bfd4;
-  max-width: 580px;
-  margin: 0 auto 28px;
+  max-width: 480px;
+  margin-bottom: 28px;
   line-height: 1.7;
 }
 
 .hero-badges {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 40px;
-  justify-content: center;
+  margin-bottom: 0;
+}
+
+/* Hero illustration */
+.hero-illustration {
+  width: 100%;
+  max-width: 520px;
+  position: relative;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes scanline {
+  0%   { top: 10%; opacity: 1; }
+  90%  { top: 85%; opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes barGrow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes blinkDot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.hero-illustration svg {
+  filter: drop-shadow(0 24px 48px rgba(0,229,176,.08));
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Responsive hero */
+@media(max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 32px;
+  }
+  .hero-left { align-items: center; text-align: center; }
+  .hero-sub { margin: 0 auto 28px; }
+  .hero-badges { justify-content: center; }
+  .hero-right { display: none; }
 }
 
 .badge {
@@ -1320,22 +1386,168 @@ h2.section-title {
 
 <!-- ══ HERO ══ -->
 <section class="hero">
-  <div class="hero-eyebrow">Live momentum scanner</div>
-  <h1>
-    Gratis <span class="accent">Gap Scanner</span>
-    <span class="line2">Vind momentum aandelen in real-time</span>
-  </h1>
-  <p class="hero-sub">
-    Gebaseerd op de bewezen strategie van Ross Cameron. Scan elke ochtend
-    de Amerikaanse beurs op gap-up aandelen met nieuws, volume en momentum —
-    volledig gratis, geen registratie vereist.
-  </p>
-  <div class="hero-badges">
-    <span class="badge"><span class="dot"></span> Gratis te gebruiken</span>
-    <span class="badge"><span class="dot"></span> Werkt vanuit heel Europa</span>
-    <span class="badge"><span class="dot"></span> Geen registratie</span>
-    <span class="badge"><span class="dot"></span> Ross Cameron methode</span>
+
+  <!-- Left: text -->
+  <div class="hero-left">
+    <div class="hero-eyebrow">Live momentum scanner</div>
+    <h1>
+      Gratis <span class="accent">Gap Scanner</span>
+      <span class="line2">Vind momentum aandelen in real-time</span>
+    </h1>
+    <p class="hero-sub">
+      Gebaseerd op de bewezen strategie van Ross Cameron. Scan elke ochtend
+      de Amerikaanse beurs op gap-up aandelen met nieuws, volume en momentum.
+      Volledig gratis, geen registratie vereist.
+    </p>
+    <div class="hero-badges">
+      <span class="badge"><span class="dot"></span> Gratis te gebruiken</span>
+      <span class="badge"><span class="dot"></span> Heel Europa</span>
+      <span class="badge"><span class="dot"></span> Geen registratie</span>
+      <span class="badge"><span class="dot"></span> Ross Cameron methode</span>
+    </div>
   </div>
+
+  <!-- Right: animated scanner illustration -->
+  <div class="hero-right">
+    <div class="hero-illustration">
+      <svg viewBox="0 0 480 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+        <defs>
+          <clipPath id="screenClip"><rect x="20" y="20" width="440" height="340" rx="12"/></clipPath>
+          <linearGradient id="screenGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0e1419"/>
+            <stop offset="100%" stop-color="#080b0e"/>
+          </linearGradient>
+          <linearGradient id="barGreen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00e5b0" stop-opacity=".9"/>
+            <stop offset="100%" stop-color="#00b38a" stop-opacity=".7"/>
+          </linearGradient>
+          <linearGradient id="barBlue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity=".8"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity=".6"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Screen background -->
+        <rect x="20" y="20" width="440" height="340" rx="12" fill="url(#screenGrad)"/>
+        <rect x="20" y="20" width="440" height="340" rx="12" fill="none" stroke="#1e2d3d" stroke-width="1.5"/>
+
+        <!-- Top bar -->
+        <rect x="20" y="20" width="440" height="36" rx="12" fill="#0e1419"/>
+        <rect x="20" y="44" width="440" height="12" fill="#0e1419"/>
+        <circle cx="44" cy="38" r="5" fill="#f43f5e" opacity=".8"/>
+        <circle cx="60" cy="38" r="5" fill="#f59e0b" opacity=".8"/>
+        <circle cx="76" cy="38" r="5" fill="#00e5b0" opacity=".8"/>
+        <text x="240" y="43" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#5a7090" letter-spacing="1">GAP SCANNER</text>
+        <circle cx="380" cy="38" r="4" fill="#00e5b0">
+          <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <text x="390" y="43" font-family="JetBrains Mono,monospace" font-size="9" fill="#00e5b0" letter-spacing="1">LIVE</text>
+
+        <!-- Column headers -->
+        <g font-family="JetBrains Mono,monospace" font-size="9" fill="#3a5068" letter-spacing="1">
+          <text x="36" y="76">TICKER</text>
+          <text x="140" y="76">GAP %</text>
+          <text x="210" y="76">PRIJS</text>
+          <text x="278" y="76">VOLUME</text>
+          <text x="360" y="76">NIEUWS</text>
+        </g>
+        <line x1="30" y1="82" x2="450" y2="82" stroke="#1e2d3d" stroke-width="1"/>
+
+        <!-- Row 1 highlighted -->
+        <rect x="22" y="84" width="436" height="36" fill="rgba(0,229,176,.06)"/>
+        <rect x="28" y="88" width="2" height="28" fill="#00e5b0" rx="1"/>
+        <text x="36" y="107" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#38bdf8">BBAI</text>
+        <text x="140" y="107" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600" fill="#00e5b0">+47.3%</text>
+        <text x="210" y="107" font-family="JetBrains Mono,monospace" font-size="11" fill="#edf2f7">$3.84</text>
+        <text x="278" y="107" font-family="JetBrains Mono,monospace" font-size="11" fill="#a78bfa">18.2M</text>
+        <rect x="358" y="91" width="52" height="18" rx="3" fill="rgba(0,229,176,.15)"/>
+        <text x="384" y="104" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#00e5b0">NEWS</text>
+
+        <!-- Row 2 -->
+        <line x1="30" y1="120" x2="450" y2="120" stroke="#1e2d3d" stroke-width=".5"/>
+        <text x="36" y="143" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#38bdf8">SNDL</text>
+        <text x="140" y="143" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600" fill="#00e5b0">+31.8%</text>
+        <text x="210" y="143" font-family="JetBrains Mono,monospace" font-size="11" fill="#edf2f7">$2.17</text>
+        <text x="278" y="143" font-family="JetBrains Mono,monospace" font-size="11" fill="#a78bfa">9.4M</text>
+        <rect x="358" y="127" width="52" height="18" rx="3" fill="rgba(0,229,176,.15)"/>
+        <text x="384" y="140" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#00e5b0">NEWS</text>
+
+        <!-- Row 3 -->
+        <line x1="30" y1="156" x2="450" y2="156" stroke="#1e2d3d" stroke-width=".5"/>
+        <text x="36" y="179" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#38bdf8">MULN</text>
+        <text x="140" y="179" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600" fill="#00e5b0">+24.5%</text>
+        <text x="210" y="179" font-family="JetBrains Mono,monospace" font-size="11" fill="#edf2f7">$1.43</text>
+        <text x="278" y="179" font-family="JetBrains Mono,monospace" font-size="11" fill="#a78bfa">5.1M</text>
+        <text x="362" y="179" font-family="JetBrains Mono,monospace" font-size="10" fill="#2a3f54">—</text>
+
+        <!-- Row 4 -->
+        <line x1="30" y1="192" x2="450" y2="192" stroke="#1e2d3d" stroke-width=".5"/>
+        <text x="36" y="215" font-family="JetBrains Mono,monospace" font-size="13" font-weight="700" fill="#38bdf8">INDO</text>
+        <text x="140" y="215" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600" fill="#00e5b0">+19.2%</text>
+        <text x="210" y="215" font-family="JetBrains Mono,monospace" font-size="11" fill="#edf2f7">$4.62</text>
+        <text x="278" y="215" font-family="JetBrains Mono,monospace" font-size="11" fill="#a78bfa">3.8M</text>
+        <rect x="358" y="199" width="52" height="18" rx="3" fill="rgba(0,229,176,.15)"/>
+        <text x="384" y="212" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#00e5b0">NEWS</text>
+
+        <!-- Animated scan line -->
+        <rect x="22" y="84" width="436" height="2" fill="#00e5b0" opacity="0">
+          <animate attributeName="y" values="84;220;84" dur="3s" repeatCount="indefinite" calcMode="ease-in-out"/>
+          <animate attributeName="opacity" values="0;0.5;0.5;0" dur="3s" repeatCount="indefinite"/>
+        </rect>
+
+        <!-- Divider -->
+        <line x1="30" y1="238" x2="450" y2="238" stroke="#1e2d3d" stroke-width="1"/>
+        <text x="36" y="258" font-family="JetBrains Mono,monospace" font-size="9" fill="#3a5068" letter-spacing="1">MARKT OVERZICHT</text>
+
+        <!-- Bar chart SPY -->
+        <rect x="42" y="268" width="36" height="56" rx="3" fill="#1e2d3d"/>
+        <rect x="42" y="288" width="36" height="36" rx="3" fill="url(#barGreen)">
+          <animate attributeName="height" values="0;36" dur="1s" begin="0.2s" fill="freeze" calcMode="ease-out"/>
+          <animate attributeName="y" values="324;288" dur="1s" begin="0.2s" fill="freeze" calcMode="ease-out"/>
+        </rect>
+        <text x="60" y="284" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#00e5b0">+0.6%</text>
+        <text x="60" y="336" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#5a7090">SPY</text>
+
+        <!-- Bar chart QQQ -->
+        <rect x="112" y="268" width="36" height="56" rx="3" fill="#1e2d3d"/>
+        <rect x="112" y="282" width="36" height="42" rx="3" fill="url(#barGreen)">
+          <animate attributeName="height" values="0;42" dur="1s" begin="0.4s" fill="freeze" calcMode="ease-out"/>
+          <animate attributeName="y" values="324;282" dur="1s" begin="0.4s" fill="freeze" calcMode="ease-out"/>
+        </rect>
+        <text x="130" y="278" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#00e5b0">+0.9%</text>
+        <text x="130" y="336" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#5a7090">QQQ</text>
+
+        <!-- Bar chart VIX -->
+        <rect x="182" y="268" width="36" height="56" rx="3" fill="#1e2d3d"/>
+        <rect x="182" y="300" width="36" height="24" rx="3" fill="url(#barBlue)">
+          <animate attributeName="height" values="0;24" dur="1s" begin="0.6s" fill="freeze" calcMode="ease-out"/>
+          <animate attributeName="y" values="324;300" dur="1s" begin="0.6s" fill="freeze" calcMode="ease-out"/>
+        </rect>
+        <text x="200" y="296" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#38bdf8">14.2</text>
+        <text x="200" y="336" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#5a7090">VIX</text>
+
+        <!-- News mini feed -->
+        <rect x="258" y="258" width="192" height="72" rx="6" fill="#0a0f14" stroke="#1e2d3d" stroke-width="1"/>
+        <text x="268" y="271" font-family="JetBrains Mono,monospace" font-size="8" fill="#22d3ee" letter-spacing=".5">BENZINGA</text>
+        <text x="268" y="284" font-family="sans-serif" font-size="10" fill="#8ba3bc">BBAI FDA approval...</text>
+        <line x1="263" y1="289" x2="444" y2="289" stroke="#1e2d3d" stroke-width=".5"/>
+        <text x="268" y="301" font-family="JetBrains Mono,monospace" font-size="8" fill="#f59e0b" letter-spacing=".5">PR NEWS</text>
+        <text x="268" y="314" font-family="sans-serif" font-size="10" fill="#8ba3bc">SNDL contract win...</text>
+        <line x1="263" y1="319" x2="444" y2="319" stroke="#1e2d3d" stroke-width=".5"/>
+        <text x="268" y="326" font-family="JetBrains Mono,monospace" font-size="8" fill="#60a5fa" letter-spacing=".5">GLOBENEWS</text>
+
+        <!-- Status bar -->
+        <rect x="20" y="336" width="440" height="24" rx="12" fill="#0a0f14"/>
+        <rect x="20" y="336" width="440" height="12" fill="#0a0f14"/>
+        <text x="36" y="352" font-family="JetBrains Mono,monospace" font-size="9" fill="#3a5068">4 gappers gevonden</text>
+        <circle cx="420" cy="348" r="3" fill="#00e5b0">
+          <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <text x="410" y="352" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="9" fill="#3a5068">15:24 ET</text>
+      </svg>
+    </div>
+  </div>
+
 </section>
 
 <!-- ══ SCANNER ══ -->
