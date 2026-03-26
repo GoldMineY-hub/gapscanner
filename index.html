@@ -1797,8 +1797,22 @@ h2.section-title {
                 <span class="code-block-label">gap-scanner-worker.js</span>
                 <button class="copy-btn" onclick="copyCode('workerCode', this)">Kopieer code</button>
               </div>
-              <pre id="workerCode">// Gap Scanner Worker: Finnhub API + Multi-source News RSS
-// Routes: /scan /market /news /health
+              <pre id="workerCode">// ─────────────────────────────────────────────────────────────────────────────
+// Gap Scanner Worker — Finnhub API + Multi-source News RSS
+//
+// Stock data:  Finnhub (free tier, real-time US quotes)
+// News feeds:  Benzinga RSS       — fast general market news
+//              GlobeNewswire RSS  — company press releases (FDA, earnings, contracts)
+//              PR Newswire RSS    — company press releases (catches what Globe misses)
+//
+// All three RSS feeds run invisibly in the background — users only see results.
+//
+// Routes:
+//   GET /scan?key=...    — Gainers with news catalyst matching
+//   GET /market?key=...  — SPY, QQQ, VIX
+//   GET /news?key=...    — Merged headlines from all sources
+//   GET /health          — Uptime check
+// ─────────────────────────────────────────────────────────────────────────────
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -1809,10 +1823,11 @@ const CORS = {
 
 const FH_BASE = 'https://finnhub.io/api/v1';
 
+// The three RSS feeds — fetched invisibly, never shown to user as config
 const RSS_FEEDS = [
-  { url: 'https://feeds.benzinga.com/benzinga', source: 'Benzinga' },
-  { url: 'https://www.globenewswire.com/RssFeed/industry/9600', source: 'GlobeNewswire' },
-  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss', source: 'PR Newswire' },
+  { url: 'https://feeds.benzinga.com/benzinga',                          source: 'Benzinga' },
+  { url: 'https://www.globenewswire.com/RssFeed/industry/9600',          source: 'GlobeNewswire' },
+  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss',        source: 'PR Newswire' },
 ];
 
 export default {
@@ -1820,148 +1835,442 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(request.url);
     const key = url.searchParams.get('key') ?? '';
+
     if (url.pathname === '/health') return ok({ ok: true, ts: new Date().toISOString() });
     if (url.pathname === '/scan')   return handleScan(url, key);
     if (url.pathname === '/market') return handleMarket(key);
     if (url.pathname === '/news')   return handleNews(key);
-    return new Response('Gap Scanner Worker: /scan /market /news /health', { headers: CORS });
+    if (url.pathname === '/videos') return handleVideos();
+
+    return new Response('Gap Scanner Worker — /scan /market /news /health', { headers: CORS });
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Finnhub helper
+// ─────────────────────────────────────────────────────────────────────────────
 async function fh(endpoint, key, params = {}) {
   if (!key) throw new Error('No API key provided');
   const u = new URL(`${FH_BASE}${endpoint}`);
   u.searchParams.set('token', key);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'GapScanner/1.0' } });
-  if (res.status === 401) throw new Error('Ongeldige API key. Controleer je Finnhub key.');
-  if (res.status === 429) throw new Error('Rate limit bereikt. Wacht even en probeer opnieuw.');
+  if (res.status === 401) throw new Error('Invalid API key — check your Finnhub key');
+  if (res.status === 429) throw new Error('Rate limit — wait a moment and try again');
   if (!res.ok) throw new Error(`Finnhub ${res.status}`);
   return res.json();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RSS fetcher — fetches all three feeds simultaneously
+// ─────────────────────────────────────────────────────────────────────────────
 async function fetchAllRSS() {
-  const results = await Promise.allSettled(RSS_FEEDS.map(f => fetchRSS(f.url, f.source)));
-  const seen = new Set(), all = [];
+  const results = await Promise.allSettled(
+    RSS_FEEDS.map(feed => fetchRSS(feed.url, feed.source))
+  );
+
+  // Merge all items, deduplicate by title
+  const seen = new Set();
+  const all  = [];
+
   for (const r of results) {
     if (r.status !== 'fulfilled') continue;
     for (const item of r.value) {
-      const k = item.title?.slice(0, 60);
-      if (!k || seen.has(k)) continue;
-      seen.add(k); all.push(item);
+      const key = item.title?.slice(0, 60);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      all.push(item);
     }
   }
+
+  // Sort by date, newest first
   return all.sort((a, b) => new Date(b.pubDate||0) - new Date(a.pubDate||0));
 }
 
 async function fetchRSS(url, source) {
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml, */*' } });
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':      'Mozilla/5.0 (compatible; GapScanner/1.0)',
+        'Accept':          'application/rss+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+      }
+    });
     if (!res.ok) return [];
-    return parseRSS(await res.text(), source);
-  } catch(e) { return []; }
+    const xml = await res.text();
+    return parseRSS(xml, source);
+  } catch(e) {
+    return [];
+  }
 }
 
 function parseRSS(xml, source) {
-  const items = [], strip = s => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim();
+  const items = [];
+  const strip = s => s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
+    .trim();
+
   const itemRe = /<item[^>]*>([\s\S]*?)<\/item>/gi;
   let m;
-  const SKIP = new Set(['FDA','CEO','CFO','IPO','ETF','NYSE','SEC','USD','GDP','CPI','AI','US','UK','EU','Q1','Q2','Q3','Q4','AM','PM','EST','ET','LLC','INC','LTD','THE','AND','FOR','NEW','NOT','ALL','TOP']);
   while ((m = itemRe.exec(xml)) !== null) {
-    const c = m[1];
-    const title = strip(c.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '');
-    const link = strip(c.match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1] ?? '');
-    const pubDate = strip(c.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ?? '');
+    const chunk   = m[1];
+    const title   = strip(chunk.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '');
+    const link    = strip(chunk.match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1] ?? '');
+    const pubDate = strip(chunk.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ?? '');
+    const desc    = strip(chunk.match(/<description[^>]*>([\s\S]*?)<\/description>/i)?.[1] ?? '').slice(0, 150);
+
     if (!title || title.length < 5) continue;
+
+    // Extract ticker symbols — look for ($AAPL) or (AAPL) or standalone caps
     const tickers = [...new Set([
-      ...[...(title).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t=>t[1]),
-      ...[...(title).matchAll(/\b([A-Z]{2,5})\b/g)].map(t=>t[1]).filter(t=>!SKIP.has(t)),
+      // Explicit stock symbols in parentheses: (AAPL) or ($AAPL)
+      ...[...(title + ' ' + desc).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t => t[1]),
+      // ALL CAPS words that look like tickers (2-5 chars, not common words)
+      ...[...(title).matchAll(/\b([A-Z]{2,5})\b/g)]
+        .map(t => t[1])
+        .filter(t => !COMMON_WORDS.has(t)),
     ])];
-    items.push({ title, link, pubDate, source, tickers });
+
+    items.push({ title, link, pubDate, desc, source, tickers });
   }
   return items;
 }
 
+// Common uppercase words to exclude from ticker extraction
+const COMMON_WORDS = new Set([
+  'FDA','CEO','CFO','COO','IPO','ETF','NYSE','SEC','USD','GDP','CPI','AI',
+  'US','UK','EU','UN','Q1','Q2','Q3','Q4','AM','PM','EST','ET','PT','CT',
+  'LLC','INC','LTD','PLC','THE','AND','FOR','NEW','NOW','ITS','ARE','HAS',
+  'WAS','NOT','BUT','ALL','CAN','GET','GOT','SET','LET','PUT','MAY','SAY',
+  'TOP','BIG','LOW','HIGH','YTD','EPS','PE','PEG','MOM','DAD','DR','MR',
+]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WATCHLIST — 300 known active small-cap / micro-cap US stocks
+// This is the universe Ross Cameron and momentum traders scan daily.
+// ─────────────────────────────────────────────────────────────────────────────
+const WATCHLIST = [...new Set([
+  // EV / Clean Energy
+  'FFIE','MULN','NKLA','RIDE','WKHS','SOLO','GOEV','AYRO','BLNK','CHPT',
+  'EVGO','PTRA','XPEV','LI','NIO','LCID','FSR','HYLN','IDEX','ZEV',
+  // Crypto / Blockchain
+  'MARA','RIOT','HUT','BITF','ARBK','CLSK','BTBT','IREN','WULF','CIFR',
+  'MIGI','SDIG','BTDR','CORZ','HIVE','DMGI','SOS','NCTY','EBON','BTCM',
+  // AI / Tech small cap
+  'BBAI','SOUN','AITX','MVIS','KOPN','VUZI','AEYE','GFAI','INPX','DMTK',
+  'VERB','ABTS','AEAC','NXTP','SINT','CODA','LAES','MFON','MUXA','BIMI',
+  // Biotech / Pharma
+  'SNDL','OCGN','NVAX','SRNE','CRBP','ADXS','ATOS','TTOO','BNGO','GEVO',
+  'TNXP','GOVX','VXRT','AGEN','ALDX','APTO','ARCT','ARDX','ARQT','ARWR',
+  'ATNX','AUTL','AVDL','AXSM','BCRX','SAVA','ADMA','ACST','BFRI','ACER',
+  'ACET','CRVS','KALA','LXRX','FGEN','HGEN','HTGM','INVA','LMNL','MDGL',
+  // Cannabis
+  'TLRY','CGC','ACB','CRON','HEXO','OGI','NEPT','APHA','IIPR','TPVG',
+  // Meme / Retail favorites
+  'AMC','GME','BBBY','KOSS','EXPR','NAKD','CTRM','SHIP','SPCE','WISH',
+  'PAYA','XELA','ATER','OPAD','IRNT','PROG','BBIG','HMBL','MMAT','CEI',
+  // Shipping / Energy
+  'INDO','IMPP','TOPS','GOGL','EGLE','EDRY','DRCT','AMPY','ASTI','FCEL',
+  'PLUG','BLDP','NFGC','TELL','HPNN','PGEN','ROIV','PNTM','LIZI','DPRO',
+  // Defense / Drone / Space
+  'RCAT','KTOS','AVAV','UAVS','ACHR','JOBY','ASTR','RKLB','LUNR','ASTS',
+  'MNTS','BWXT','SKYW','AIRO','UAVS','DPRO','DRON','SATL','SPIR','UXIN',
+  // Mining / Metals
+  'UAMY','USAS','MAG','EXK','AG','HL','PAAS','CDE','SILV','GATO',
+  'AUMN','GPL','AXU','ASM','IAUX','ATEX','GORO','HYMC','LODE','VGLD',
+  // China ADR small cap
+  'CIFS','CLPS','CPHI','CREG','CTIB','CTIC','CODA','BIMI','ILUS','EPAZ',
+  'BTBT','NCTY','SOS','EBON','BTCM','HPNN','XNET','GOTU','NTES','LAIX',
+  // Recent high-momentum / trending
+  'CELH','HIMS','DJT','FFAI','GENIE','LUCY','NVTS','KSCP','KULR','DAVE',
+  'CLBT','VIGL','HOLO','CLOV','SOFI','OPEN','SKLZ','UWMC','BARK','BODY',
+  'GREE','TRCH','NXGL','ZYNE','ATIF','EDTX','BWAY','PNTM','VIEW','PSFE',
+  // Active small caps general
+  'PHUN','MARK','GOVX','FPVD','DELT','ACMR','SING','RELI','NKTR','AKBA',
+  'CIDM','IDEANOMICS','MTTR','GEVO','SENS','TELA','NUO','MBOT','INVO',
+])];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /scan — Quote all watchlist tickers in parallel, filter by gap criteria
+// ─────────────────────────────────────────────────────────────────────────────
 async function handleScan(url, key) {
   if (!key) return err('Geen API key. Voer je Finnhub key in op de pagina.');
   try {
-    const p = url.searchParams;
-    const minGap = parseFloat(p.get('minGap') ?? '10');
+    const p        = url.searchParams;
+    const minGap   = parseFloat(p.get('minGap')   ?? '10');
     const minPrice = parseFloat(p.get('minPrice') ?? '1');
     const maxPrice = parseFloat(p.get('maxPrice') ?? '20');
-    const [finnhubNews, rssItems] = await Promise.all([
+
+    // Split watchlist into batches of 25 to respect 60 calls/min
+    const BATCH = 25;
+    const batches = [];
+    for (let i = 0; i < WATCHLIST.length; i += BATCH) {
+      batches.push(WATCHLIST.slice(i, i + BATCH));
+    }
+
+    // Fetch news + all quote batches simultaneously
+    const [finnhubNews, rssItems, ...batchResults] = await Promise.all([
       fh('/news', key, { category: 'general' }).catch(() => []),
       fetchAllRSS(),
+      ...batches.map(batch =>
+        Promise.all(
+          batch.map(sym =>
+            fh('/quote', key, { symbol: sym })
+              .then(q => ({ sym, q }))
+              .catch(() => null)
+          )
+        )
+      ),
     ]);
+
+    // Build news map: ticker -> best news item
     const newsMap = {};
     for (const n of (finnhubNews || [])) {
       if (!n.related) continue;
       n.related.split(',').forEach(t => {
         const sym = t.trim().toUpperCase();
-        if (sym && sym.length <= 6 && /^[A-Z]+$/.test(sym) && !newsMap[sym])
-          newsMap[sym] = { title: n.headline, link: n.url, source: 'Finnhub', pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null };
+        if (sym && !newsMap[sym])
+          newsMap[sym] = { title: n.headline, link: n.url, source: 'Finnhub', pubDate: n.datetime ? new Date(n.datetime*1000).toISOString() : null };
       });
     }
     for (const item of rssItems) {
-      for (const sym of (item.tickers || [])) {
-        if (!newsMap[sym]) newsMap[sym] = { title: item.title, link: item.link, source: item.source, pubDate: item.pubDate };
-      }
+      for (const sym of (item.tickers || []))
+        if (!newsMap[sym])
+          newsMap[sym] = { title: item.title, link: item.link, source: item.source, pubDate: item.pubDate };
     }
-    const tickersWithNews = Object.keys(newsMap);
-    if (tickersWithNews.length === 0) return ok({ ok: true, count: 0, stocks: [], scannedAt: new Date().toISOString() });
-    const quoteResults = await Promise.all(
-      tickersWithNews.slice(0, 60).map(sym => fh('/quote', key, { symbol: sym }).then(q => ({ sym, q })).catch(() => null))
-    );
+
+    // Filter results
     const stocks = [];
-    for (const item of quoteResults) {
-      if (!item) continue;
-      const { sym, q } = item;
-      if (!q || !q.c || !q.pc || q.c === 0) continue;
-      const price = q.c, prevClose = q.pc;
+    for (const { sym, q } of batchResults.flat().filter(Boolean)) {
+      if (!q || !q.c || !q.pc || q.c === 0 || q.pc === 0) continue;
+      const price     = q.c;
+      const prevClose = q.pc;
       const changePct = ((price - prevClose) / prevClose) * 100;
+      const volume    = q.v ?? null;
       if (changePct < minGap || price < minPrice || price > maxPrice) continue;
       const news = newsMap[sym];
-      stocks.push({ ticker: sym, company: '', price: +price.toFixed(2), prevClose: +prevClose.toFixed(2), gapPct: +changePct.toFixed(2), volume: q.v ?? null, relVol: null, hasNews: !!news, headline: news?.title ?? null, newsUrl: news?.link ?? null, newsSource: news?.source ?? null, catalyst: news ? 'news' : 'unknown', score: calcScore(changePct, null, price) });
+      stocks.push({
+        ticker:     sym,
+        price:      +price.toFixed(2),
+        prevClose:  +prevClose.toFixed(2),
+        gapPct:     +changePct.toFixed(2),
+        volume,
+        relVol:     null,
+        hasNews:    !!news,
+        headline:   news?.title   ?? null,
+        newsUrl:    news?.link    ?? null,
+        newsSource: news?.source  ?? null,
+        score:      calcScore(changePct, null, price, !!news),
+      });
     }
-    stocks.sort((a, b) => b.gapPct - a.gapPct);
-    return ok({ ok: true, count: stocks.length, stocks, scannedAt: new Date().toISOString() });
-  } catch(e) { return err(e.message); }
+
+    stocks.sort((a, b) => b.score - a.score);
+    return ok({ ok: true, count: stocks.length, scanned: WATCHLIST.length, stocks, scannedAt: new Date().toISOString() });
+
+  } catch(e) {
+    return err(e.message);
+  }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// /market — SPY, QQQ, VIX
+// ─────────────────────────────────────────────────────────────────────────────
 async function handleMarket(key) {
   if (!key) return err('No API key');
   try {
-    const [spy, qqq, vix] = await Promise.all([fh('/quote', key, { symbol: 'SPY' }), fh('/quote', key, { symbol: 'QQQ' }), fh('/quote', key, { symbol: 'VIX' }).catch(() => null)]);
-    const fmt = (q, sym) => q ? { symbol: sym, price: q.c, changePct: q.pc > 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : null, prevClose: q.pc } : { symbol: sym, error: 'No data' };
+    const [spy, qqq, vix] = await Promise.all([
+      fh('/quote', key, { symbol: 'SPY'  }),
+      fh('/quote', key, { symbol: 'QQQ'  }),
+      fh('/quote', key, { symbol: 'VIX'  }).catch(() => null),
+    ]);
+
+    const fmt = (q, sym) => q ? {
+      symbol:    sym,
+      price:     q.c,
+      changePct: q.pc > 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : null,
+      prevClose: q.pc,
+      high:      q.h,
+      low:       q.l,
+    } : { symbol: sym, error: 'No data' };
+
     return ok({ ok: true, spy: fmt(spy,'SPY'), qqq: fmt(qqq,'QQQ'), vix: fmt(vix,'VIX'), ts: new Date().toISOString() });
-  } catch(e) { return err(e.message); }
+  } catch(e) {
+    return err(e.message);
+  }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// /news — merged + smart ranked headlines
+// Ranking score per item:
+//   +40  ticker matches a scan result (most actionable)
+//   +20  high-impact catalyst keywords (FDA, earnings, approval etc.)
+//   +15  Benzinga source (fastest, most relevant for day trading)
+//   +10  GlobeNewswire source (press releases = real catalysts)
+//   +5   PR Newswire source
+//   +0-10 recency (newer = higher, decays over 2 hours)
+// ─────────────────────────────────────────────────────────────────────────────
 async function handleNews(key) {
   try {
     const [finnhubNews, rssItems] = await Promise.all([
       key ? fh('/news', key, { category: 'general' }).catch(() => []) : Promise.resolve([]),
       fetchAllRSS(),
     ]);
-    const items = [];
-    for (const n of (finnhubNews || []).slice(0, 20))
-      items.push({ title: n.headline, link: n.url, source: n.source ?? 'Finnhub', pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null, tickers: n.related ? n.related.split(',').map(t => t.trim()).filter(Boolean) : [] });
-    for (const r of rssItems.slice(0, 40))
-      items.push({ title: r.title, link: r.link, source: r.source, pubDate: r.pubDate, tickers: r.tickers ?? [] });
+
+    const raw = [];
+
+    // Finnhub items
+    for (const n of (finnhubNews || []).slice(0, 20)) {
+      raw.push({
+        title:   n.headline,
+        link:    n.url,
+        source:  n.source ?? 'Finnhub',
+        pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
+        tickers: n.related ? n.related.split(',').map(t => t.trim()).filter(Boolean) : [],
+      });
+    }
+
+    // RSS items
+    for (const r of rssItems.slice(0, 60)) {
+      raw.push({
+        title:   r.title,
+        link:    r.link,
+        source:  r.source,
+        pubDate: r.pubDate,
+        tickers: r.tickers ?? [],
+      });
+    }
+
+    // Catalyst keywords that signal a real market-moving event
+    const CATALYST_WORDS = [
+      'fda','approval','approved','approves','clearance','clears',
+      'earnings','revenue','profit','beat','beats','miss','guidance',
+      'merger','acquisition','acquires','takeover','buyout',
+      'contract','award','awarded','partnership','deal',
+      'ipo','offering','uplisting',
+      'clinical','trial','phase','data','results',
+      'breakthrough','exclusive','major','record','surge',
+    ];
+
+    // Source quality scores
+    const sourceScore = src => {
+      const s = (src || '').toLowerCase();
+      if (s.includes('benzinga'))                              return 15;
+      if (s.includes('globe') || s.includes('globenews'))     return 10;
+      if (s.includes('pr newswire') || s.includes('prnews'))  return 10;
+      return 0;
+    };
+
+    // Recency score — 10 pts if < 30 min, decays to 0 at 2 hours
+    const recencyScore = pubDate => {
+      if (!pubDate) return 0;
+      try {
+        const ageMin = (Date.now() - new Date(pubDate).getTime()) / 60000;
+        if (ageMin < 30)  return 10;
+        if (ageMin < 60)  return 7;
+        if (ageMin < 120) return 4;
+        return 1;
+      } catch(e) { return 0; }
+    };
+
+    // Catalyst keyword score
+    const catalystScore = title => {
+      if (!title) return 0;
+      const t = title.toLowerCase();
+      return CATALYST_WORDS.some(w => t.includes(w)) ? 20 : 0;
+    };
+
+    // Score every item
+    const scored = raw.map(item => ({
+      ...item,
+      _score: sourceScore(item.source)
+             + recencyScore(item.pubDate)
+             + catalystScore(item.title)
+             + (item.tickers?.length > 0 ? 5 : 0),
+    }));
+
+    // Sort by score descending, then by recency as tiebreaker
+    scored.sort((a, b) => {
+      if (b._score !== a._score) return b._score - a._score;
+      return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
+    });
+
+    // Remove internal score field before returning
+    const items = scored.slice(0, 50).map(({ _score, ...item }) => item);
+
     return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
-  } catch(e) { return err(e.message); }
+  } catch(e) {
+    return err(e.message);
+  }
 }
 
-function calcScore(gapPct, relVol, price) {
+// ─────────────────────────────────────────────────────────────────────────────
+// /videos — Latest Ross Cameron YouTube videos via free RSS feed
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleVideos() {
+  try {
+    const CHANNEL_ID = 'UCBayuhgYpKNbhJxfExYkPfA';
+    const res = await fetch(
+      `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GapScanner/1.0)' } }
+    );
+    if (!res.ok) throw new Error(`YouTube feed error ${res.status}`);
+    const xml = await res.text();
+
+    const videos = [];
+    const entryRe = /<entry>([\s\S]*?)<\/entry>/gi;
+    let m;
+
+    while ((m = entryRe.exec(xml)) !== null) {
+      const chunk = m[1];
+
+      const videoId  = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)  || [])[1] ?? '';
+      const title    = (chunk.match(/<title>([^<]+)<\/title>/)             || [])[1] ?? '';
+      const pubDate  = (chunk.match(/<published>([^<]+)<\/published>/)     || [])[1] ?? '';
+      const thumb    = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+      const url      = `https://www.youtube.com/watch?v=${videoId}`;
+
+      if (!videoId) continue;
+
+      videos.push({
+        videoId,
+        title:   title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim(),
+        pubDate,
+        thumb,
+        url,
+      });
+
+      if (videos.length >= 6) break;
+    }
+
+    return ok({ ok: true, count: videos.length, videos, ts: new Date().toISOString() });
+  } catch(e) {
+    return err(e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function calcScore(gapPct, relVol, price, hasNews = false) {
   let s = Math.min(40, (gapPct / 100) * 40);
   if (relVol != null) s += Math.min(25, ((relVol - 1) / 9) * 25);
-  if (price >= 2 && price <= 10) s += 10;
+  if (price >= 2  && price <= 10) s += 10;
   else if (price > 10 && price <= 20) s += 5;
+  if (hasNews) s += 20; // news catalyst is a major boost
   return Math.round(Math.min(100, s));
 }
 
-function ok(data) { return new Response(JSON.stringify(data), { headers: { ...CORS, 'Content-Type': 'application/json' } }); }
-function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } }); }</pre>
+function ok(data) {
+  return new Response(JSON.stringify(data), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
+
+function err(msg, status = 500) {
+  return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
+</pre>
             </div>
           </div>
         </div>
@@ -2282,7 +2591,7 @@ async function runScan() {
     renderTable();
     updateStats(data.scannedAt);
     if (!results.length) { setState('empty'); toast('Geen resultaten. Verlaag Min Gap % of verbreed het prijsbereik.',''); }
-    else toast(`${results.length} gapper${results.length!==1?'s':''} gevonden`,'ok');
+    else toast(`${results.length} gapper${results.length!==1?'s':''} gevonden van ${data.scanned||300} gescand`,'ok');
   } catch(e) {
     setState('error', e.message);
     toast('Fout: '+e.message,'err');
@@ -2527,7 +2836,7 @@ function toggleMoreNews(btn) {
 function setState(s, msg='') {
   const m = {
     loading: `<div class="state-msg"><p><span class="spinner"></span>Data ophalen via Finnhub...</p><small>Gappers identificeren en nieuws matchen...</small></div>`,
-    empty:   `<div class="state-msg"><div class="icon">📭</div><p>Geen gappers gevonden met jouw filters.</p><small>Verlaag Min Gap % of verbreed het prijsbereik.</small></div>`,
+    empty:   `<div class="state-msg"><div class="icon">📭</div><p>Geen gappers gevonden in de 300 gescande aandelen.</p><small>Verlaag Min Gap % of wacht tot de markt opengaat (15:30 CET).</small></div>`,
     error:   `<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Controleer je Worker URL en API key.</small></div>`,
   };
   if (m[s]) document.getElementById('tableContainer').innerHTML=m[s];
