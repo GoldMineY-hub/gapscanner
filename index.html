@@ -76,6 +76,7 @@ body::before {
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   height: 56px;
+  isolation: isolate;
 }
 
 .site-header-inner {
@@ -132,6 +133,57 @@ body::before {
   transition: color .2s;
 }
 .nav-links a:hover { color: var(--accent); }
+
+/* Hamburger button */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 4px;
+  background: none;
+  border: none;
+}
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--muted);
+  border-radius: 2px;
+  transition: all .25s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile dropdown menu */
+.mobile-menu {
+  display: none;
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  background: rgba(8,11,14,.97);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+  z-index: 99;
+}
+.mobile-menu.open { display: block; }
+.mobile-menu a {
+  display: block;
+  padding: 12px 24px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  transition: color .15s, background .15s;
+}
+.mobile-menu a:last-child { border-bottom: none; }
+.mobile-menu a:hover { color: var(--accent); background: rgba(0,229,176,.05); }
 
 .header-clock {
   font-family: var(--mono);
@@ -1288,6 +1340,7 @@ h2.section-title {
   /* Header */
   .site-header-inner { padding: 0 16px; }
   .nav-links { display: none; }
+  .hamburger { display: flex; }
   .header-clock { font-size: 11px; gap: 6px; }
 
   /* Hero */
@@ -1380,7 +1433,19 @@ h2.section-title {
       <span id="clock">--:--:--</span>
       <span class="mkt-badge" id="mstatus">—</span>
     </div>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
+  </div>
+  <!-- Mobile dropdown -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#scanner" onclick="closeMenu()">Scanner</a>
+    <a href="#wanneer" onclick="closeMenu()">Wanneer scannen</a>
+    <a href="#strategie" onclick="closeMenu()">Strategie</a>
+    <a href="#setup" onclick="closeMenu()">Instellen</a>
+    <a href="#youtube" onclick="closeMenu()">Videos</a>
+    <a href="#faq" onclick="closeMenu()">FAQ</a>
   </div>
 </header>
 
@@ -1666,7 +1731,8 @@ h2.section-title {
         <span class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span>GlobeNewswire</span>
         <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>PR Newswire</span>
         <span class="legend-item"><span class="legend-dot" style="background:#5a7090"></span>Finnhub</span>
-        <button class="btn-sm" onclick="loadNews()" style="align-self:center">↻ Vernieuwen</button>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:4px">↻ elke 2 min</span>
+        <button class="btn-sm" onclick="loadNews()" style="align-self:center">↻ Nu vernieuwen</button>
       </div>
     </div>
     <div id="newsContainer">
@@ -1851,13 +1917,13 @@ export default {
 // ─────────────────────────────────────────────────────────────────────────────
 async function fh(endpoint, key, params = {}) {
   if (!key) throw new Error('No API key provided');
-  const u = new URL(`${FH_BASE}${endpoint}`);
+  const u = new URL(&#96;&#36;{FH_BASE}&#36;{endpoint}&#96;);
   u.searchParams.set('token', key);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'GapScanner/1.0' } });
   if (res.status === 401) throw new Error('Invalid API key — check your Finnhub key');
   if (res.status === 429) throw new Error('Rate limit — wait a moment and try again');
-  if (!res.ok) throw new Error(`Finnhub ${res.status}`);
+  if (!res.ok) throw new Error(&#96;Finnhub &#36;{res.status}&#96;);
   return res.json();
 }
 
@@ -1866,7 +1932,7 @@ async function fh(endpoint, key, params = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchAllRSS() {
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(feed => fetchRSS(feed.url, feed.source))
+    RSS_FEEDS.map(feed =&gt; fetchRSS(feed.url, feed.source))
   );
 
   // Merge all items, deduplicate by title
@@ -1884,7 +1950,7 @@ async function fetchAllRSS() {
   }
 
   // Sort by date, newest first
-  return all.sort((a, b) => new Date(b.pubDate||0) - new Date(a.pubDate||0));
+  return all.sort((a, b) =&gt; new Date(b.pubDate||0) - new Date(a.pubDate||0));
 }
 
 async function fetchRSS(url, source) {
@@ -1906,32 +1972,32 @@ async function fetchRSS(url, source) {
 
 function parseRSS(xml, source) {
   const items = [];
-  const strip = s => s
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
-    .replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
+  const strip = s =&gt; s
+    .replace(/&lt;!\[CDATA\[([\s\S]*?)\]\]&gt;/g, '$1')
+    .replace(/&lt;[^&gt;]+&gt;/g, '')
+    .replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;')
+    .replace(/&amp;quot;/g,'"').replace(/&amp;#39;/g,"'").replace(/&amp;nbsp;/g,' ')
     .trim();
 
-  const itemRe = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+  const itemRe = /&lt;item[^&gt;]*&gt;([\s\S]*?)&lt;\/item&gt;/gi;
   let m;
   while ((m = itemRe.exec(xml)) !== null) {
     const chunk   = m[1];
-    const title   = strip(chunk.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '');
-    const link    = strip(chunk.match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1] ?? '');
-    const pubDate = strip(chunk.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ?? '');
-    const desc    = strip(chunk.match(/<description[^>]*>([\s\S]*?)<\/description>/i)?.[1] ?? '').slice(0, 150);
+    const title   = strip(chunk.match(/&lt;title[^&gt;]*&gt;([\s\S]*?)&lt;\/title&gt;/i)?.[1] ?? '');
+    const link    = strip(chunk.match(/&lt;link[^&gt;]*&gt;([\s\S]*?)&lt;\/link&gt;/i)?.[1] ?? '');
+    const pubDate = strip(chunk.match(/&lt;pubDate[^&gt;]*&gt;([\s\S]*?)&lt;\/pubDate&gt;/i)?.[1] ?? '');
+    const desc    = strip(chunk.match(/&lt;description[^&gt;]*&gt;([\s\S]*?)&lt;\/description&gt;/i)?.[1] ?? '').slice(0, 150);
 
-    if (!title || title.length < 5) continue;
+    if (!title || title.length &lt; 5) continue;
 
     // Extract ticker symbols — look for ($AAPL) or (AAPL) or standalone caps
     const tickers = [...new Set([
       // Explicit stock symbols in parentheses: (AAPL) or ($AAPL)
-      ...[...(title + ' ' + desc).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t => t[1]),
+      ...[...(title + ' ' + desc).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t =&gt; t[1]),
       // ALL CAPS words that look like tickers (2-5 chars, not common words)
       ...[...(title).matchAll(/\b([A-Z]{2,5})\b/g)]
-        .map(t => t[1])
-        .filter(t => !COMMON_WORDS.has(t)),
+        .map(t =&gt; t[1])
+        .filter(t =&gt; !COMMON_WORDS.has(t)),
     ])];
 
     items.push({ title, link, pubDate, desc, source, tickers });
@@ -2007,32 +2073,32 @@ async function handleScan(url, key) {
     // Split watchlist into batches of 25 to respect 60 calls/min
     const BATCH = 25;
     const batches = [];
-    for (let i = 0; i < WATCHLIST.length; i += BATCH) {
+    for (let i = 0; i &lt; WATCHLIST.length; i += BATCH) {
       batches.push(WATCHLIST.slice(i, i + BATCH));
     }
 
     // Fetch news + all quote batches simultaneously
     const [finnhubNews, rssItems, ...batchResults] = await Promise.all([
-      fh('/news', key, { category: 'general' }).catch(() => []),
+      fh('/news', key, { category: 'general' }).catch(() =&gt; []),
       fetchAllRSS(),
-      ...batches.map(batch =>
+      ...batches.map(batch =&gt;
         Promise.all(
-          batch.map(sym =>
+          batch.map(sym =&gt;
             fh('/quote', key, { symbol: sym })
-              .then(q => ({ sym, q }))
-              .catch(() => null)
+              .then(q =&gt; ({ sym, q }))
+              .catch(() =&gt; null)
           )
         )
       ),
     ]);
 
-    // Build news map: ticker -> best news item
+    // Build news map: ticker -&gt; best news item
     const newsMap = {};
     for (const n of (finnhubNews || [])) {
       if (!n.related) continue;
-      n.related.split(',').forEach(t => {
+      n.related.split(',').forEach(t =&gt; {
         const sym = t.trim().toUpperCase();
-        if (sym && !newsMap[sym])
+        if (sym &amp;&amp; !newsMap[sym])
           newsMap[sym] = { title: n.headline, link: n.url, source: 'Finnhub', pubDate: n.datetime ? new Date(n.datetime*1000).toISOString() : null };
       });
     }
@@ -2050,7 +2116,7 @@ async function handleScan(url, key) {
       const prevClose = q.pc;
       const changePct = ((price - prevClose) / prevClose) * 100;
       const volume    = q.v ?? null;
-      if (changePct < minGap || price < minPrice || price > maxPrice) continue;
+      if (changePct &lt; minGap || price &lt; minPrice || price &gt; maxPrice) continue;
       const news = newsMap[sym];
       stocks.push({
         ticker:     sym,
@@ -2067,7 +2133,7 @@ async function handleScan(url, key) {
       });
     }
 
-    stocks.sort((a, b) => b.score - a.score);
+    stocks.sort((a, b) =&gt; b.score - a.score);
     return ok({ ok: true, count: stocks.length, scanned: WATCHLIST.length, stocks, scannedAt: new Date().toISOString() });
 
   } catch(e) {
@@ -2084,13 +2150,13 @@ async function handleMarket(key) {
     const [spy, qqq, vix] = await Promise.all([
       fh('/quote', key, { symbol: 'SPY'  }),
       fh('/quote', key, { symbol: 'QQQ'  }),
-      fh('/quote', key, { symbol: 'VIX'  }).catch(() => null),
+      fh('/quote', key, { symbol: 'VIX'  }).catch(() =&gt; null),
     ]);
 
-    const fmt = (q, sym) => q ? {
+    const fmt = (q, sym) =&gt; q ? {
       symbol:    sym,
       price:     q.c,
-      changePct: q.pc > 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : null,
+      changePct: q.pc &gt; 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : null,
       prevClose: q.pc,
       high:      q.h,
       low:       q.l,
@@ -2115,7 +2181,7 @@ async function handleMarket(key) {
 async function handleNews(key) {
   try {
     const [finnhubNews, rssItems] = await Promise.all([
-      key ? fh('/news', key, { category: 'general' }).catch(() => []) : Promise.resolve([]),
+      key ? fh('/news', key, { category: 'general' }).catch(() =&gt; []) : Promise.resolve([]),
       fetchAllRSS(),
     ]);
 
@@ -2128,7 +2194,7 @@ async function handleNews(key) {
         link:    n.url,
         source:  n.source ?? 'Finnhub',
         pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
-        tickers: n.related ? n.related.split(',').map(t => t.trim()).filter(Boolean) : [],
+        tickers: n.related ? n.related.split(',').map(t =&gt; t.trim()).filter(Boolean) : [],
       });
     }
 
@@ -2155,7 +2221,7 @@ async function handleNews(key) {
     ];
 
     // Source quality scores
-    const sourceScore = src => {
+    const sourceScore = src =&gt; {
       const s = (src || '').toLowerCase();
       if (s.includes('benzinga'))                              return 15;
       if (s.includes('globe') || s.includes('globenews'))     return 10;
@@ -2163,42 +2229,42 @@ async function handleNews(key) {
       return 0;
     };
 
-    // Recency score — 10 pts if < 30 min, decays to 0 at 2 hours
-    const recencyScore = pubDate => {
+    // Recency score — 10 pts if &lt; 30 min, decays to 0 at 2 hours
+    const recencyScore = pubDate =&gt; {
       if (!pubDate) return 0;
       try {
         const ageMin = (Date.now() - new Date(pubDate).getTime()) / 60000;
-        if (ageMin < 30)  return 10;
-        if (ageMin < 60)  return 7;
-        if (ageMin < 120) return 4;
+        if (ageMin &lt; 30)  return 10;
+        if (ageMin &lt; 60)  return 7;
+        if (ageMin &lt; 120) return 4;
         return 1;
       } catch(e) { return 0; }
     };
 
     // Catalyst keyword score
-    const catalystScore = title => {
+    const catalystScore = title =&gt; {
       if (!title) return 0;
       const t = title.toLowerCase();
-      return CATALYST_WORDS.some(w => t.includes(w)) ? 20 : 0;
+      return CATALYST_WORDS.some(w =&gt; t.includes(w)) ? 20 : 0;
     };
 
     // Score every item
-    const scored = raw.map(item => ({
+    const scored = raw.map(item =&gt; ({
       ...item,
       _score: sourceScore(item.source)
              + recencyScore(item.pubDate)
              + catalystScore(item.title)
-             + (item.tickers?.length > 0 ? 5 : 0),
+             + (item.tickers?.length &gt; 0 ? 5 : 0),
     }));
 
     // Sort by score descending, then by recency as tiebreaker
-    scored.sort((a, b) => {
+    scored.sort((a, b) =&gt; {
       if (b._score !== a._score) return b._score - a._score;
       return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
     });
 
     // Remove internal score field before returning
-    const items = scored.slice(0, 50).map(({ _score, ...item }) => item);
+    const items = scored.slice(0, 50).map(({ _score, ...item }) =&gt; item);
 
     return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
   } catch(e) {
@@ -2213,36 +2279,36 @@ async function handleVideos() {
   try {
     const CHANNEL_ID = 'UCBayuhgYpKNbhJxfExYkPfA';
     const res = await fetch(
-      `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`,
+      &#96;https://www.youtube.com/feeds/videos.xml?channel_id=&#36;{CHANNEL_ID}&#96;,
       { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GapScanner/1.0)' } }
     );
-    if (!res.ok) throw new Error(`YouTube feed error ${res.status}`);
+    if (!res.ok) throw new Error(&#96;YouTube feed error &#36;{res.status}&#96;);
     const xml = await res.text();
 
     const videos = [];
-    const entryRe = /<entry>([\s\S]*?)<\/entry>/gi;
+    const entryRe = /&lt;entry&gt;([\s\S]*?)&lt;\/entry&gt;/gi;
     let m;
 
     while ((m = entryRe.exec(xml)) !== null) {
       const chunk = m[1];
 
-      const videoId  = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)  || [])[1] ?? '';
-      const title    = (chunk.match(/<title>([^<]+)<\/title>/)             || [])[1] ?? '';
-      const pubDate  = (chunk.match(/<published>([^<]+)<\/published>/)     || [])[1] ?? '';
-      const thumb    = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
-      const url      = `https://www.youtube.com/watch?v=${videoId}`;
+      const videoId  = (chunk.match(/&lt;yt:videoId&gt;([^&lt;]+)&lt;\/yt:videoId&gt;/)  || [])[1] ?? '';
+      const title    = (chunk.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)             || [])[1] ?? '';
+      const pubDate  = (chunk.match(/&lt;published&gt;([^&lt;]+)&lt;\/published&gt;/)     || [])[1] ?? '';
+      const thumb    = &#96;https://i.ytimg.com/vi/&#36;{videoId}/mqdefault.jpg&#96;;
+      const url      = &#96;https://www.youtube.com/watch?v=&#36;{videoId}&#96;;
 
       if (!videoId) continue;
 
       videos.push({
         videoId,
-        title:   title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim(),
+        title:   title.replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;').replace(/&amp;#39;/g,"'").replace(/&amp;quot;/g,'"').trim(),
         pubDate,
         thumb,
         url,
       });
 
-      if (videos.length >= 6) break;
+      if (videos.length &gt;= 6) break;
     }
 
     return ok({ ok: true, count: videos.length, videos, ts: new Date().toISOString() });
@@ -2257,8 +2323,8 @@ async function handleVideos() {
 function calcScore(gapPct, relVol, price, hasNews = false) {
   let s = Math.min(40, (gapPct / 100) * 40);
   if (relVol != null) s += Math.min(25, ((relVol - 1) / 9) * 25);
-  if (price >= 2  && price <= 10) s += 10;
-  else if (price > 10 && price <= 20) s += 5;
+  if (price &gt;= 2  &amp;&amp; price &lt;= 10) s += 10;
+  else if (price &gt; 10 &amp;&amp; price &lt;= 20) s += 5;
   if (hasNews) s += 20; // news catalyst is a major boost
   return Math.round(Math.min(100, s));
 }
@@ -2506,6 +2572,18 @@ $apiKey.addEventListener('input', function() {
 function updateDot(id, set) {
   const el = document.getElementById(id);
   if (el) el.className = 'status-dot' + (set ? ' set' : '');
+}
+
+// ── Mobile menu ───────────────────────────────────────────────────────────────
+function toggleMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const btn  = document.getElementById('hamburger');
+  const open = menu.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+function closeMenu() {
+  document.getElementById('mobileMenu').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
 }
 
 // ── Config toggles ────────────────────────────────────────────────────────────
@@ -2869,7 +2947,14 @@ function exportCSV() {
 
 // ── Copy code ─────────────────────────────────────────────────────────────────
 function copyCode(id, btn) {
-  const text = document.getElementById(id).textContent;
+  const el = document.getElementById(id);
+  // Unescape HTML entities so copied code is valid JS
+  const text = el.textContent
+    .replace(/&#96;/g, '`')
+    .replace(/&#36;\{/g, '${')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
   navigator.clipboard.writeText(text).then(() => {
     btn.textContent = '✓ Gekopieerd!';
     btn.classList.add('copied');
@@ -2905,6 +2990,12 @@ function toast(msg, type='') {
 // ── Init ──────────────────────────────────────────────────────────────────────
 if (base() && apiKey()) loadSidebar();
 loadVideos();
+
+// ── Auto-refresh (silent, background) ────────────────────────────────────────
+// News: every 2 minutes — tijdgevoelig, kan altijd vers nieuws zijn
+// Market: every 1 minute — SPY/QQQ/VIX prijzen bewegen snel
+setInterval(() => { if (base() && apiKey()) loadNews(); },   2 * 60 * 1000);
+setInterval(() => { if (base() && apiKey()) loadMarket(); }, 1 * 60 * 1000);
 </script>
 
 <!-- Schema.org structured data for Google -->
