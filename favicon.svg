@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="#00e5b0"/>
+  <!-- G letter -->
+  <text
+    x="16"
+    y="23"
+    font-family="'Arial Black', Arial, sans-serif"
+    font-size="20"
+    font-weight="900"
+    fill="#080b0e"
+    text-anchor="middle"
+  >G</text>
+</svg>
