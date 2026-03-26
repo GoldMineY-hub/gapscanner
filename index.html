@@ -752,19 +752,19 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
 }
 
 .content-sections .setup-tabs {
-  max-width: 680px;
+  max-width: 960px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .content-sections .tab-content {
-  max-width: 680px;
+  max-width: 960px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .content-sections .faq-list {
-  max-width: 760px;
+  max-width: 960px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -781,7 +781,7 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
 .section-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border), transparent);
-  margin: 56px 0;
+  margin: 36px 0;
 }
 
 .section-label {
@@ -814,9 +814,12 @@ h2.section-title {
 /* Timing table */
 .timing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 28px;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .timing-card {
@@ -834,9 +837,12 @@ h2.section-title {
 /* Criteria grid */
 .criteria-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 28px;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .criteria-card {
@@ -1086,6 +1092,90 @@ h2.section-title {
   .footer-bottom { flex-direction: column; align-items: flex-start; }
 }
 
+/* ── YouTube Videos ── */
+.youtube-section {
+  padding: 0 32px 80px;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.video-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: border-color .2s, transform .15s;
+  display: block;
+}
+
+.video-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.video-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+  background: var(--surface2);
+}
+
+.video-info {
+  padding: 12px 14px;
+}
+
+.video-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.video-date {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.video-loading {
+  grid-column: 1 / -1;
+  padding: 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media(max-width: 1024px) {
+  .video-grid { grid-template-columns: repeat(3, 1fr); max-width: 100%; }
+}
+
+@media(max-width: 768px) {
+  .youtube-section { padding: 0 16px 48px; max-width: 100%; }
+  .video-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+@media(max-width: 480px) {
+  .video-grid { grid-template-columns: 1fr; }
+}
+
 /* Toast */
 .toast {
   position: fixed; bottom: 20px; right: 20px;
@@ -1100,13 +1190,25 @@ h2.section-title {
 .toast.err { border-color: rgba(244,63,94,.4); color: var(--red); }
 
 /* ════════════════════════════════════════
+   FOOTER COLLAPSE — max 900px
+════════════════════════════════════════ */
+@media(max-width: 900px) {
+  .footer-grid { grid-template-columns: 1fr; gap: 24px; text-align: center; }
+  .footer-col-links { align-items: center; }
+}
+
+/* ════════════════════════════════════════
    TABLET — max 1024px
 ════════════════════════════════════════ */
 @media(max-width: 1024px) {
   .main-layout { grid-template-columns: 1fr; }
   .sidebar { position: static; }
-  .timing-grid { grid-template-columns: repeat(2, 1fr); }
-  .criteria-grid { grid-template-columns: repeat(2, 1fr); }
+  .timing-grid { grid-template-columns: repeat(2, 1fr); max-width: 100%; }
+  .criteria-grid { grid-template-columns: repeat(2, 1fr); max-width: 100%; }
+  .content-sections .setup-tabs { max-width: 100%; }
+  .content-sections .tab-content { max-width: 100%; }
+  .content-sections .faq-list { max-width: 100%; }
+
 }
 
 /* ════════════════════════════════════════
@@ -1126,7 +1228,7 @@ h2.section-title {
   .badge { font-size: 10px; padding: 4px 10px; }
 
   /* Scanner */
-  .scanner-app { padding: 0 16px 32px; }
+  .scanner-app { padding: 0 16px 32px; max-width: 100%; }
   .filters-bar { gap: 8px; flex-wrap: wrap; }
   .filter-group input,
   .filter-group select { width: 100px; font-size: 11px; }
@@ -1150,18 +1252,20 @@ h2.section-title {
   .news-section-head { flex-wrap: wrap; gap: 8px; }
 
   /* Content sections */
-  .content-sections { padding: 0 16px 48px; }
+  .content-sections { padding: 0 16px 48px; max-width: 100%; }
   h2.section-title { font-size: 22px; }
-  .timing-grid { grid-template-columns: 1fr; gap: 10px; }
-  .criteria-grid { grid-template-columns: 1fr; gap: 10px; }
-  .setup-tabs { max-width: 100%; }
-  .tab-content { max-width: 100%; padding: 16px; }
-  .faq-list { max-width: 100%; }
+  .section-divider { margin: 28px 0; }
+  .timing-grid { grid-template-columns: 1fr 1fr; gap: 10px; max-width: 100%; }
+  .criteria-grid { grid-template-columns: 1fr 1fr; gap: 10px; max-width: 100%; }
+  .content-sections .setup-tabs { max-width: 100%; }
+  .content-sections .tab-content { max-width: 100%; padding: 16px; }
+  .content-sections .faq-list { max-width: 100%; }
   .step { gap: 10px; }
   .code-block pre { font-size: 10px; }
 
   /* Footer */
-  .site-footer { padding: 24px 16px; flex-direction: column; gap: 12px; }
+  .site-footer { padding: 32px 16px; max-width: 100%; }
+  .footer-bottom { flex-direction: column; align-items: center; text-align: center; }
 }
 
 /* ════════════════════════════════════════
@@ -1175,6 +1279,11 @@ h2.section-title {
   .filters-bar { display: grid; grid-template-columns: 1fr 1fr; }
   .btn-scan { grid-column: 1 / -1; }
   .scan-info { grid-column: 1 / -1; margin-left: 0; }
+  .timing-grid { grid-template-columns: 1fr; }
+  .criteria-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr; }
+  .setup-tabs { flex-direction: column; }
+  .tab-btn { border-right: none; border-bottom: 1px solid var(--border); }
 }
 </style>
 </head>
@@ -1194,6 +1303,7 @@ h2.section-title {
       <a href="#wanneer">Wanneer</a>
       <a href="#strategie">Strategie</a>
       <a href="#setup">Instellen</a>
+      <a href="#youtube">Videos</a>
       <a href="#faq">FAQ</a>
     </nav>
     <div class="header-clock">
@@ -1471,7 +1581,7 @@ h2.section-title {
                 <span class="code-block-label">gap-scanner-worker.js</span>
                 <button class="copy-btn" onclick="copyCode('workerCode', this)">Kopieer code</button>
               </div>
-              <pre id="workerCode">// Gap Scanner Worker — Finnhub API + Multi-source News RSS
+              <pre id="workerCode">// Gap Scanner Worker: Finnhub API + Multi-source News RSS
 // Routes: /scan /market /news /health
 
 const CORS = {
@@ -1783,7 +1893,19 @@ function err(msg, status = 500) { return new Response(JSON.stringify({ ok: false
 
 </div>
 
-<!-- ══ FOOTER ══ -->
+<!-- ══ YOUTUBE ══ -->
+<div class="youtube-section" id="youtube">
+  <div class="section-divider"></div>
+  <div class="section-label">Ross Cameron</div>
+  <h2 class="section-title">Laatste YouTube Videos</h2>
+  <p class="section-text" style="margin-left:auto;margin-right:auto">
+    Bekijk hoe Ross Cameron dagelijks de gap scanner gebruikt, zijn trades uitlegt en de markt analyseert.
+    Bijna 2 miljoen abonnees volgen zijn gratis dagelijkse content.
+  </p>
+  <div class="video-grid" id="videoGrid">
+    <div class="video-loading"><span class="spinner"></span>Videos laden...</div>
+  </div>
+</div>
 <footer class="site-footer">
   <div class="footer-grid">
 
@@ -1848,6 +1970,7 @@ if (sk) { $apiKey.value = sk;    updateDot('keyDot', true); }
 $workerUrl.addEventListener('input', function() {
   localStorage.setItem('gap_worker_url', this.value.trim());
   updateDot('workerDot', !!this.value.trim());
+  if (this.value.trim()) loadVideos();
 });
 $apiKey.addEventListener('input', function() {
   localStorage.setItem('gap_finnhub_key', this.value.trim());
@@ -2011,6 +2134,63 @@ function updateStats(iso) {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function loadSidebar() { if(!base()||!apiKey()) return; loadMarket(); loadNews(); }
+
+// ── YouTube Videos ────────────────────────────────────────────────────────────
+async function loadVideos() {
+  const grid = document.getElementById('videoGrid');
+  if (!grid) return;
+
+  // If no worker URL set, show a direct link to the channel instead
+  if (!base()) {
+    grid.innerHTML = `
+      <div class="video-loading" style="grid-column:1/-1;padding:24px 0">
+        <a href="https://www.youtube.com/@daytradewarrior" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--accent);text-decoration:none;border:1px solid rgba(0,229,176,.3);padding:10px 20px;border-radius:5px;background:rgba(0,229,176,.08)">
+          📺 Bekijk het kanaal van Ross Cameron op YouTube →
+        </a>
+        <p style="margin-top:12px;font-size:11px;color:var(--muted);font-family:var(--mono)">
+          Voer je Worker URL in om de laatste videos hier te laden.
+        </p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = '<div class="video-loading"><span class="spinner"></span>Videos laden...</div>';
+
+  try {
+    const d = await call('/videos');
+    if (!d.videos?.length) {
+      grid.innerHTML = `
+        <div class="video-loading" style="grid-column:1/-1">
+          <a href="https://www.youtube.com/@daytradewarrior" target="_blank" rel="noopener"
+             style="color:var(--accent);font-family:var(--mono);font-size:12px">
+            Bekijk het kanaal van Ross Cameron op YouTube →
+          </a>
+        </div>`;
+      return;
+    }
+    const fmtDate = iso => {
+      try { return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }); }
+      catch(e) { return ''; }
+    };
+    grid.innerHTML = d.videos.map(v => `
+      <a class="video-card" href="${v.url}" target="_blank" rel="noopener">
+        <img class="video-thumb" src="${v.thumb}" alt="${v.title}" loading="lazy">
+        <div class="video-info">
+          <div class="video-title">${v.title}</div>
+          <div class="video-date">${fmtDate(v.pubDate)}</div>
+        </div>
+      </a>`).join('');
+  } catch(e) {
+    grid.innerHTML = `
+      <div class="video-loading" style="grid-column:1/-1">
+        <a href="https://www.youtube.com/@daytradewarrior" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--accent);text-decoration:none;border:1px solid rgba(0,229,176,.3);padding:10px 20px;border-radius:5px;background:rgba(0,229,176,.08)">
+          📺 Bekijk het kanaal van Ross Cameron op YouTube →
+        </a>
+      </div>`;
+  }
+}
 
 async function loadMarket() {
   document.getElementById('marketPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Laden...</div>';
@@ -2199,6 +2379,7 @@ function toast(msg, type='') {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 if (base() && apiKey()) loadSidebar();
+loadVideos();
 </script>
 
 <!-- Schema.org structured data for Google -->
