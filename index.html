@@ -2073,6 +2073,7 @@ export default {
     if (url.pathname === '/news')   return handleNews(key);
     if (url.pathname === '/movers') return handleMovers(key, fmp);
     if (url.pathname === '/videos') return handleVideos();
+    if (url.pathname === '/debug')  return handleDebug(fmp);
 
     return new Response('Gap Scanner Worker: /scan /market /news /videos /health', { headers: CORS });
   }
@@ -2248,6 +2249,27 @@ async function handleScan(url, finnhubKey, fmpKey) {
   } catch(e) {
     return err(e.message);
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /debug — shows raw FMP response so we can diagnose field names
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleDebug(fmpKey) {
+  if (!fmpKey) return err('Geen FMP key');
+  try {
+    const raw = await fetch(&#96;&#36;{FMP_BASE}/gainers?apikey=&#36;{fmpKey}&#96;).then(r =&gt; r.json());
+    const isArray = Array.isArray(raw);
+    const keys    = isArray ? Object.keys(raw[0] || {}) : Object.keys(raw);
+    const first   = isArray ? raw[0] : (Array.isArray(Object.values(raw)[0]) ? Object.values(raw)[0][0] : raw);
+    return ok({
+      ok:          true,
+      isArray,
+      topLevelKeys: isArray ? ['array'] : Object.keys(raw),
+      firstItemKeys: Object.keys(first || {}),
+      firstItem:   first,
+      count:       isArray ? raw.length : '?',
+    });
+  } catch(e) { return err(e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2960,14 +2982,23 @@ let moversData = { gainers: [], losers: [] };
 let moversMode = 'gain';
 
 async function loadMovers() {
-  if (!base() || !fmpKey()) return;
+  if (!base()) { document.getElementById('moversContainer').innerHTML = '<div class="state-msg" style="padding:20px"><p>Geen Worker URL ingesteld.</p></div>'; return; }
+  if (!fmpKey()) { document.getElementById('moversContainer').innerHTML = '<div class="state-msg" style="padding:20px"><p>Voer je FMP API key in om movers te laden.</p></div>'; return; }
   document.getElementById('moversContainer').innerHTML =
     '<div class="state-msg" style="padding:20px"><p><span class="spinner"></span>Movers laden...</p></div>';
   try {
     const d = await call('/movers');
+    console.log('Movers response:', d);
     moversData = { gainers: d.gainers || [], losers: d.losers || [] };
+    console.log('Gainers count:', moversData.gainers.length, 'Losers:', moversData.losers.length);
+    if (moversData.gainers.length === 0 && moversData.losers.length === 0) {
+      document.getElementById('moversContainer').innerHTML =
+        '<div class="state-msg" style="padding:20px"><p>Geen data ontvangen van FMP. Controleer je FMP API key.</p></div>';
+      return;
+    }
     renderMovers();
   } catch(e) {
+    console.error('Movers error:', e);
     document.getElementById('moversContainer').innerHTML =
       `<div class="state-msg" style="padding:20px"><p style="color:var(--red)">Fout: ${e.message}</p></div>`;
   }
