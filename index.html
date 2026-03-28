@@ -2056,9 +2056,11 @@ const FMP_BASE_V3     = 'https://financialmodelingprep.com/api/v3';
 const FMP_BASE_STABLE = 'https://financialmodelingprep.com/stable';
 
 const RSS_FEEDS = [
-  { url: 'https://feeds.benzinga.com/benzinga',                    source: 'Benzinga' },
-  { url: 'https://www.globenewswire.com/RssFeed/industry/9600',    source: 'GlobeNewswire' },
-  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss',  source: 'PR Newswire' },
+  { url: 'https://feeds.benzinga.com/benzinga',                                    source: 'Benzinga' },
+  { url: 'https://www.globenewswire.com/RssFeed/industry/9600',                    source: 'GlobeNewswire' },
+  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss',                  source: 'PR Newswire' },
+  { url: 'https://www.businesswire.com/rss/home/?rss=G1',                          source: 'Business Wire' },
+  { url: 'https://www.accesswire.com/rss',                                         source: 'AccessWire' },
 ];
 
 export default {
@@ -2182,55 +2184,160 @@ async function handleScan(url, finnhubKey, fmpKey) {
     const dateFrom = from.toISOString().slice(0, 10);
     const dateTo   = today.toISOString().slice(0, 10);
 
-    // Step 4: Fetch company-specific news + RSS feeds simultaneously
-    // Limit company news to top 20 candidates to stay within Finnhub rate limits
-    const topCandidates = candidates.slice(0, 20);
-
-    const [rssItems, ...companyNewsResults] = await Promise.all([
-      fetchAllRSS(),
-      ...topCandidates.map(s =&gt;
-        finnhubKey
-          ? fh('/company-news', finnhubKey, { symbol: s.ticker, from: dateFrom, to: dateTo })
-              .then(news =&gt; ({ ticker: s.ticker, news: news || [] }))
-              .catch(() =&gt; ({ ticker: s.ticker, news: [] }))
-          : Promise.resolve({ ticker: s.ticker, news: [] })
-      ),
+    // Sources that publish generic market overviews — blocked for per-stock news
+    const BLOCKED_SOURCES = new Set([
+      'chartmill','markets insider','simply wall st','simplywall',
+      'wsj markets','investing.com','seekingalpha','seeking alpha',
+      'thestreet','investopedia','motley fool','fool.com','zacks',
+      'marketbeat','stockanalysis','stockanalysis.com','finviz',
     ]);
 
-    // Build company news map: ticker -&gt; best/most relevant news item
-    const companyNewsMap = {};
-    for (const { ticker, news } of companyNewsResults) {
-      if (!news.length) continue;
-      // Sort by datetime descending, pick the most recent
-      const sorted = news.sort((a, b) =&gt; (b.datetime || 0) - (a.datetime || 0));
-      const best   = sorted[0];
-      companyNewsMap[ticker] = {
-        title:    best.headline,
-        link:     best.url,
-        source:   best.source ?? 'Finnhub',
-        pubDate:  best.datetime ? new Date(best.datetime * 1000).toISOString() : null,
-        allNews:  sorted.slice(0, 5).map(n =&gt; ({
+    // Generic headline patterns to filter out
+    const GENERIC_PHRASES = [
+      'top stock movements','unusual volume','top gainers','top losers',
+      'gapping on','pre-market session','after-hours','market session',
+      'stocks to watch','movers today','which stocks','session recap',
+      'week ahead','market wrap','opening bell','closing bell',
+    ];
+
+    const isRealNews = (headline, source) =&gt; {
+      const src   = (source   || '').toLowerCase();
+      const title = (headline || '').toLowerCase();
+      if (BLOCKED_SOURCES.has(src)) return false;
+      if (GENERIC_PHRASES.some(p =&gt; title.includes(p))) return false;
+      return true;
+    };
+
+    // Score a news item — higher = more relevant catalyst
+    const newsScore = (n) =&gt; {
+      let s = 0;
+      const src   = (n.source  || '').toLowerCase();
+      const title = (n.title   || n.headline || '').toLowerCase();
+      // Source quality
+      if (src.includes('sec.gov') || src === 'sec edgar')  s += 50;
+      if (src.includes('businesswire'))                     s += 30;
+      if (src.includes('globenewswire'))                    s += 25;
+      if (src.includes('prnewswire') || src.includes('pr newswire')) s += 25;
+      if (src.includes('accesswire'))                       s += 25;
+      if (src.includes('yahoo'))                            s += 20;
+      if (src.includes('benzinga'))                         s += 15;
+      // Catalyst keywords
+      const catalysts = ['fda','approval','approved','clearance','clears',
+        'earnings','revenue','beat','guidance','merger','acquisition','acquires',
+        'contract','award','partnership','deal','ipo','offering','uplisting',
+        'clinical','trial','phase','data','results','grant','license',
+        'breakthrough','record','expands','launches','announces'];
+      if (catalysts.some(w =&gt; title.includes(w))) s += 20;
+      // Recency bonus (within last 4 hours)
+      const ts = n.datetime || (n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0);
+      const ageHrs = (Date.now()/1000 - ts) / 3600;
+      if (ageHrs &lt; 1)  s += 15;
+      else if (ageHrs &lt; 4)  s += 8;
+      else if (ageHrs &lt; 12) s += 3;
+      return s;
+    };
+
+    // Limit to top 15 candidates by gap %
+    const topCandidates = candidates.slice(0, 15);
+
+    // Fetch all news sources simultaneously for each candidate
+    const fetchStockNews = async (stock) =&gt; {
+      const ticker  = stock.ticker;
+      const company = stock.company || '';
+      // Short company name for matching (first 2 meaningful words)
+      const shortName = company.split(' ').filter(w =&gt; w.length &gt; 2).slice(0, 2).join(' ').toLowerCase();
+
+      const [
+        finnhubNews,
+        yahooNews,
+        secFilings,
+      ] = await Promise.all([
+        // Finnhub company news
+        finnhubKey
+          ? fh('/company-news', finnhubKey, { symbol: ticker, from: dateFrom, to: dateTo })
+              .catch(() =&gt; [])
+          : Promise.resolve([]),
+        // Yahoo Finance RSS per ticker
+        fetchYahooRSS(ticker),
+        // SEC EDGAR 8-K filings for this ticker
+        fetchSECFilings(ticker),
+      ]);
+
+      // Normalise all sources into one format
+      const allNews = [];
+
+      // Finnhub news
+      for (const n of (finnhubNews || [])) {
+        if (!isRealNews(n.headline, n.source)) continue;
+        allNews.push({
           title:   n.headline,
           link:    n.url,
-          source:  n.source ?? 'Finnhub',
+          source:  n.source || 'Finnhub',
           pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
-        })),
-      };
-    }
-
-    // Also check RSS feeds for any ticker mentions
-    for (const item of rssItems) {
-      for (const sym of (item.tickers || [])) {
-        if (!companyNewsMap[sym]) {
-          companyNewsMap[sym] = {
-            title:   item.title,
-            link:    item.link,
-            source:  item.source,
-            pubDate: item.pubDate,
-            allNews: [{ title: item.title, link: item.link, source: item.source, pubDate: item.pubDate }],
-          };
-        }
+          datetime: n.datetime || 0,
+        });
       }
+
+      // Yahoo Finance RSS
+      for (const n of (yahooNews || [])) {
+        if (!isRealNews(n.title, n.source)) continue;
+        allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
+      }
+
+      // SEC EDGAR 8-K filings — always real, never filtered
+      for (const n of (secFilings || [])) {
+        allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
+      }
+
+      // Also check RSS items for this ticker or company name
+      const rssForStock = rssItems.filter(item =&gt; {
+        if ((item.tickers || []).includes(ticker)) return true;
+        if (shortName &amp;&amp; item.title.toLowerCase().includes(shortName)) return true;
+        return false;
+      });
+      for (const n of rssForStock) {
+        if (!isRealNews(n.title, n.source)) continue;
+        allNews.push({
+          title:   n.title,
+          link:    n.link,
+          source:  n.source,
+          pubDate: n.pubDate,
+          datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0,
+        });
+      }
+
+      // Deduplicate by title similarity
+      const seen = new Set();
+      const unique = allNews.filter(n =&gt; {
+        const key = (n.title || '').slice(0, 60).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // Sort by score (source quality + catalyst keywords + recency)
+      unique.sort((a, b) =&gt; newsScore(b) - newsScore(a));
+
+      return { ticker, news: unique.slice(0, 5) };
+    };
+
+    // Fetch RSS feeds + all stock news simultaneously
+    const [rssItems, ...stockNewsResults] = await Promise.all([
+      fetchAllRSS(),
+      ...topCandidates.map(fetchStockNews),
+    ]);
+
+    // Build news map
+    const companyNewsMap = {};
+    for (const { ticker, news } of stockNewsResults) {
+      if (!news.length) continue;
+      companyNewsMap[ticker] = {
+        title:   news[0].title,
+        link:    news[0].link,
+        source:  news[0].source,
+        pubDate: news[0].pubDate,
+        allNews: news,
+      };
     }
 
     // Step 5: Build final stock list (s already normalised by normFMP)
@@ -2255,14 +2362,16 @@ async function handleScan(url, finnhubKey, fmpKey) {
       };
     });
 
-    stocks.sort((a, b) =&gt; b.score - a.score);
+    // Sort by gap % high to low, take top 15
+    stocks.sort((a, b) =&gt; b.gapPct - a.gapPct);
+    const top15 = stocks.slice(0, 15);
 
     return ok({
       ok:        true,
-      count:     stocks.length,
+      count:     top15.length,
       scanned:   allStocks.length,
       source:    'FMP gainers (alle US aandelen)',
-      stocks,
+      stocks:    top15,
       scannedAt: new Date().toISOString(),
     });
 
@@ -2319,23 +2428,57 @@ async function handleMovers(finnhubKey, fmpKey) {
     const dateFrom = from.toISOString().slice(0, 10);
     const dateTo   = today.toISOString().slice(0, 10);
 
-    // Enrich top 10 gainers and top 10 losers with company news
+    // Enrich top 10 gainers and top 10 losers with multi-source news
     const enrichStocks = async (rawStocks, limit = 10) =&gt; {
-      // Normalise FMP fields first
       const top = (rawStocks || [])
         .map(normFMP)
         .filter(s =&gt; s.ticker &amp;&amp; !s.ticker.includes('.') &amp;&amp; !s.ticker.includes('-'))
         .slice(0, limit);
 
       const newsResults = await Promise.all(
-        top.map(s =&gt;
-          finnhubKey
-            ? fh('/company-news', finnhubKey, { symbol: s.ticker, from: dateFrom, to: dateTo })
-                .then(news =&gt; ({ ticker: s.ticker, news: (news || []).slice(0, 3) }))
-                .catch(() =&gt; ({ ticker: s.ticker, news: [] }))
-            : Promise.resolve({ ticker: s.ticker, news: [] })
-        )
+        top.map(async s =&gt; {
+          const [finnhubNews, yahooNews, secFilings] = await Promise.all([
+            finnhubKey
+              ? fh('/company-news', finnhubKey, { symbol: s.ticker, from: dateFrom, to: dateTo })
+                  .catch(() =&gt; [])
+              : Promise.resolve([]),
+            fetchYahooRSS(s.ticker),
+            fetchSECFilings(s.ticker),
+          ]);
+
+          const allNews = [];
+          const seen    = new Set();
+
+          // Finnhub
+          for (const n of (finnhubNews || [])) {
+            const key = (n.headline || '').slice(0, 60).toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            allNews.push({
+              title:   n.headline,
+              link:    n.url,
+              source:  n.source || 'Finnhub',
+              pubDate: n.datetime ? new Date(n.datetime*1000).toISOString() : null,
+              datetime: n.datetime || 0,
+            });
+          }
+          // Yahoo
+          for (const n of (yahooNews || [])) {
+            const key = (n.title || '').slice(0, 60).toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
+          }
+          // SEC
+          for (const n of (secFilings || [])) {
+            allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
+          }
+
+          allNews.sort((a, b) =&gt; newsScore(b) - newsScore(a));
+          return { ticker: s.ticker, news: allNews.slice(0, 3) };
+        })
       );
+
       const newsMap = {};
       for (const { ticker, news } of newsResults) newsMap[ticker] = news;
 
@@ -2352,10 +2495,10 @@ async function handleMovers(finnhubKey, fmpKey) {
           volume:    s.volume,
           hasNews:   news.length &gt; 0,
           news:      news.map(n =&gt; ({
-            title:   n.headline,
-            link:    n.url,
-            source:  n.source ?? 'Finnhub',
-            pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
+            title:   n.title,
+            link:    n.link,
+            source:  n.source,
+            pubDate: n.pubDate,
           })),
         };
       });
@@ -2416,7 +2559,17 @@ async function handleNews(key) {
       raw.push({ title: r.title, link: r.link, source: r.source, pubDate: r.pubDate, tickers: r.tickers ?? [] });
 
     const CATALYST = ['fda','approval','approved','clearance','earnings','revenue','beat','beats','guidance','merger','acquisition','acquires','contract','award','partnership','deal','ipo','offering','uplisting','clinical','trial','phase','breakthrough','record','surge'];
-    const srcScore = s =&gt; { s=(s||'').toLowerCase(); return s.includes('benzinga')?15:s.includes('globe')?10:s.includes('pr newswire')||s.includes('prnews')?10:0; };
+    const srcScore = s =&gt; {
+      s = (s||'').toLowerCase();
+      if (s.includes('sec.gov') || s === 'sec edgar')             return 40;
+      if (s.includes('businesswire'))                              return 30;
+      if (s.includes('accesswire'))                                return 25;
+      if (s.includes('globenewswire') || s.includes('globe'))      return 20;
+      if (s.includes('pr newswire') || s.includes('prnews'))       return 20;
+      if (s.includes('benzinga'))                                  return 15;
+      if (s.includes('yahoo'))                                     return 12;
+      return 0;
+    };
     const ageScore = d =&gt; { if(!d)return 0; try{ const m=(Date.now()-new Date(d).getTime())/60000; return m&lt;30?10:m&lt;60?7:m&lt;120?4:1; }catch{return 0;} };
     const catScore = t =&gt; { if(!t)return 0; const l=t.toLowerCase(); return CATALYST.some(w=&gt;l.includes(w))?20:0; };
 
@@ -2449,6 +2602,65 @@ async function handleVideos() {
     }
     return ok({ ok: true, count: videos.length, videos, ts: new Date().toISOString() });
   } catch(e) { return err(e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Yahoo Finance RSS — per ticker, very relevant
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchYahooRSS(ticker) {
+  try {
+    const url = &#96;https://feeds.finance.yahoo.com/rss/2.0/headline?s=&#36;{ticker}&amp;region=US&amp;lang=en-US&#96;;
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!res.ok) return [];
+    const xml  = await res.text();
+    const strip = s =&gt; s.replace(/&lt;!\[CDATA\[([\s\S]*?)\]\]&gt;/g,'$1').replace(/&lt;[^&gt;]+&gt;/g,'').replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;').replace(/&amp;quot;/g,'"').trim();
+    const items = [];
+    const itemRe = /&lt;item&gt;([\s\S]*?)&lt;\/item&gt;/gi;
+    let m;
+    while ((m = itemRe.exec(xml)) !== null) {
+      const c       = m[1];
+      const title   = strip(c.match(/&lt;title&gt;([\s\S]*?)&lt;\/title&gt;/i)?.[1] ?? '');
+      const link    = strip(c.match(/&lt;link&gt;([\s\S]*?)&lt;\/link&gt;/i)?.[1] ?? '');
+      const pubDate = strip(c.match(/&lt;pubDate&gt;([\s\S]*?)&lt;\/pubDate&gt;/i)?.[1] ?? '');
+      if (!title || title.length &lt; 5) continue;
+      items.push({ title, link, source: 'Yahoo Finance', pubDate, tickers: [ticker] });
+    }
+    return items.slice(0, 5);
+  } catch { return []; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEC EDGAR 8-K RSS — official filings (FDA, contracts, earnings, mergers)
+// Best source for real catalyst news — always primary, never aggregated
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchSECFilings(ticker) {
+  try {
+    // SEC EDGAR full-text search RSS for this ticker in 8-K filings
+    const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22&#36;{ticker}%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(3)}&amp;enddt=&#36;{getTodayDate()}&amp;forms=8-K&#96;;
+    const res = await fetch(url, { headers: { 'User-Agent': 'GapScanner contact@goldminey.com', 'Accept': 'application/json' } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const hits  = data.hits?.hits ?? [];
+    return hits.slice(0, 3).map(h =&gt; ({
+      title:   h._source?.period_of_report
+               ? &#96;8-K Filing: &#36;{h._source?.display_date_filed} — &#36;{h._source?.entity_name ?? ticker}&#96;
+               : &#96;SEC 8-K: &#36;{h._source?.entity_name ?? ticker}&#96;,
+      link:    &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{ticker}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=10&#96;,
+      source:  'SEC EDGAR',
+      pubDate: h._source?.period_of_report ?? null,
+      tickers: [ticker],
+    }));
+  } catch { return []; }
+}
+
+function getTodayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getDateDaysAgo(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2981,8 +3193,8 @@ async function runScan() {
     prevTickers = newSet;
     renderTable();
     updateStats(data.scannedAt);
-    if (!results.length) { setState('empty'); toast('Geen resultaten. Verlaag Min Gap % of verbreed het prijsbereik.',''); }
-    else toast(`${results.length} gapper${results.length!==1?'s':''} gevonden van ${data.scanned||300} gescand`,'ok');
+    if (!results.length) { setState('empty'); toast('Geen resultaten. Verlaag Min Gap % of wacht tot de markt opengaat (15:30 CET).',''); }
+    else toast(`Top ${results.length} gappers van ${data.scanned||0} gescand — gesorteerd op gap %`,'ok');
   } catch(e) {
     setState('error', e.message);
     toast('Fout: '+e.message,'err');
