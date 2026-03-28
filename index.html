@@ -2052,7 +2052,8 @@ const CORS = {
 };
 
 const FH_BASE  = 'https://finnhub.io/api/v1';
-const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
+const FMP_BASE_V3     = 'https://financialmodelingprep.com/api/v3';
+const FMP_BASE_STABLE = 'https://financialmodelingprep.com/stable';
 
 const RSS_FEEDS = [
   { url: 'https://feeds.benzinga.com/benzinga',                    source: 'Benzinga' },
@@ -2094,18 +2095,37 @@ async function fh(endpoint, key, params = {}) {
   return res.json();
 }
 
-async function fmpFetch(endpoint, fmpKey) {
+async function fmpFetch(endpoint, fmpKey, useStable = false) {
   if (!fmpKey) throw new Error('Geen FMP API key opgegeven.');
-  const res = await fetch(&#96;&#36;{FMP_BASE}&#36;{endpoint}?apikey=&#36;{fmpKey}&#96;, { headers: { 'User-Agent': 'GapScanner/1.0' } });
+  const base = useStable ? FMP_BASE_STABLE : FMP_BASE_V3;
+  const res = await fetch(&#96;&#36;{base}&#36;{endpoint}?apikey=&#36;{fmpKey}&#96;, { headers: { 'User-Agent': 'GapScanner/1.0' } });
   if (res.status === 401 || res.status === 403) throw new Error('Ongeldige FMP API key.');
   if (res.status === 429) throw new Error('FMP rate limit bereikt. Je hebt 250 gratis calls per dag.');
   if (!res.ok) throw new Error(&#96;FMP fout &#36;{res.status}&#96;);
   const data = await res.json();
-  // FMP wraps results in { mostGainerStock: [...] } or { mostLoserStock: [...] } etc.
-  // or returns a plain array — normalise to array
+
+  // FMP can return:
+  //   plain array:                     [ {symbol,price,...}, ... ]
+  //   wrapped array:                   { mostGainerStock: [...] }
+  //   wrapped array v4:                { data: [...] }
+  //   error object:                    { "Error Message": "..." }
+  //   empty object on weekend/holiday: {}
+
   if (Array.isArray(data)) return data;
-  const key = Object.keys(data).find(k =&gt; Array.isArray(data[k]));
-  return key ? data[key] : [];
+
+  // Check for error message
+  if (data['Error Message'] || data.error || data.message) {
+    const msg = data['Error Message'] || data.error || data.message;
+    throw new Error(&#96;FMP: &#36;{msg}&#96;);
+  }
+
+  // Find the first array value in the object
+  for (const val of Object.values(data)) {
+    if (Array.isArray(val) &amp;&amp; val.length &gt; 0) return val;
+  }
+
+  // Return empty if nothing found (weekend, holiday, etc.)
+  return [];
 }
 
 // Normalise a single FMP stock object — field names vary between endpoint versions
@@ -2133,8 +2153,8 @@ async function handleScan(url, finnhubKey, fmpKey) {
 
     // Step 1: Get all gainers + actives from FMP simultaneously
     const [gainersData, activesData] = await Promise.all([
-      fmpFetch('/gainers', fmpKey).catch(() =&gt; []),
-      fmpFetch('/actives', fmpKey).catch(() =&gt; []),
+      fmpFetch('/biggest-gainers', fmpKey, true).catch(() =&gt; []),
+      fmpFetch('/most-actives', fmpKey, true).catch(() =&gt; []),
     ]);
 
     // Merge + deduplicate, normalise FMP field names
@@ -2257,17 +2277,25 @@ async function handleScan(url, finnhubKey, fmpKey) {
 async function handleDebug(fmpKey) {
   if (!fmpKey) return err('Geen FMP key');
   try {
-    const raw = await fetch(&#96;&#36;{FMP_BASE}/gainers?apikey=&#36;{fmpKey}&#96;).then(r =&gt; r.json());
-    const isArray = Array.isArray(raw);
-    const keys    = isArray ? Object.keys(raw[0] || {}) : Object.keys(raw);
-    const first   = isArray ? raw[0] : (Array.isArray(Object.values(raw)[0]) ? Object.values(raw)[0][0] : raw);
+    const res  = await fetch(&#96;&#36;{FMP_BASE_STABLE}/biggest-gainers?apikey=&#36;{fmpKey}&#96;);
+    const text = await res.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch(e) { parsed = null; }
+
+    const isArray    = Array.isArray(parsed);
+    const topKeys    = parsed &amp;&amp; !isArray ? Object.keys(parsed) : [];
+    const firstItem  = isArray ? parsed[0] : (parsed &amp;&amp; topKeys.length ? parsed[topKeys[0]]?.[0] : parsed);
+    const firstKeys  = firstItem ? Object.keys(firstItem) : [];
+
     return ok({
-      ok:          true,
+      ok:           true,
+      httpStatus:   res.status,
       isArray,
-      topLevelKeys: isArray ? ['array'] : Object.keys(raw),
-      firstItemKeys: Object.keys(first || {}),
-      firstItem:   first,
-      count:       isArray ? raw.length : '?',
+      count:        isArray ? parsed.length : '?',
+      topLevelKeys: topKeys,
+      firstItemKeys: firstKeys,
+      firstItem,
+      rawPreview:   text.slice(0, 300),
     });
   } catch(e) { return err(e.message); }
 }
@@ -2281,8 +2309,8 @@ async function handleMovers(finnhubKey, fmpKey) {
   try {
     // Fetch gainers + losers simultaneously
     const [gainers, losers] = await Promise.all([
-      fmpFetch('/gainers', fmpKey).catch(() =&gt; []),
-      fmpFetch('/losers',  fmpKey).catch(() =&gt; []),
+      fmpFetch('/biggest-gainers', fmpKey, true).catch(() =&gt; []),
+      fmpFetch('/biggest-losers',  fmpKey, true).catch(() =&gt; []),
     ]);
 
     // Date range for news (yesterday + today)
