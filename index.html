@@ -3675,4 +3675,32 @@ loadVideos();
 // Market: every 1 minute
 // Movers: every 5 minutes
 setInterval(() => { if (base() && apiKey()) loadNews(); },   2 * 60 * 1000);
-setInterval(() => { if (base() && apiKey()) loadMarket();
+setInterval(() => { if (base() && apiKey()) loadMarket(); }, 1 * 60 * 1000);
+setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
+</script>
+
+<!-- Schema.org structured data for Google -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Gap Scanner",
+  "url": "https://sahadataly.github.io/gap-scanner/",
+  "description": "Gratis gap scanner voor day traders in Nederland en België. Vind elke dag de sterkste momentum aandelen op de Amerikaanse beurs.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR"
+  },
+  "inLanguage": "nl",
+  "audience": {
+    "@type": "Audience",
+    "geographicArea": "Europa"
+  }
+}
+</script>
+
+</body>
+</html>
