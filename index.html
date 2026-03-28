@@ -7,6 +7,7 @@
 <meta name="description" content="Vind elke dag de sterkste momentum aandelen met onze gratis gap scanner. Gebaseerd op de strategie van Ross Cameron. Werkt vanuit heel Europa. Geen registratie vereist.">
 <meta name="keywords" content="gap scanner, momentum aandelen, day trading nederland, aandelen screener, gap up aandelen, gratis aandelenscreener, dag trading belgie, ross cameron strategie, amerikaanse beurs scanner">
 <meta name="robots" content="index, follow">
+<meta name="google-site-verification" content="8uWrRiZSQhl4esgppSeOqEHBv3mw_tP17GqGYX5Vrls">
 <meta property="og:title" content="Gratis Gap Scanner - Momentum Aandelen Vinden">
 <meta property="og:description" content="Vind elke dag de sterkste momentum aandelen. Gratis, geen registratie, werkt vanuit heel Europa.">
 <meta property="og:type" content="website">
@@ -2611,7 +2612,7 @@ async function fetchSECFilings(ticker) {
   try {
     // SEC EDGAR full-text search RSS for this ticker in 8-K filings
     const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22&#36;{ticker}%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(3)}&amp;enddt=&#36;{getTodayDate()}&amp;forms=8-K&#96;;
-    const res = await fetch(url, { headers: { 'User-Agent': 'GapScanner contact@goldminey.com', 'Accept': 'application/json' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'GapScanner <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="20434f4e5441435460474f4c444d494e45590e434f4d">[email&#160;protected]</a>', 'Accept': 'application/json' } });
     if (!res.ok) return [];
     const data = await res.json();
     const hits  = data.hits?.hits ?? [];
@@ -3060,7 +3061,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -3674,12 +3675,4 @@ loadVideos();
 // Market: every 1 minute
 // Movers: every 5 minutes
 setInterval(() => { if (base() && apiKey()) loadNews(); },   2 * 60 * 1000);
-setInterval(() => { if (base() && apiKey()) loadMarket(); }, 1 * 60 * 1000);
-setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
-</script>
-
-<!-- Schema.org structured data for Google -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "
+setInterval(() => { if (base() && apiKey()) loadMarket();
