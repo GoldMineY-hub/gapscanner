@@ -2293,11 +2293,13 @@ async function handleScan(url, finnhubKey, fmpKey) {
       return { ticker, news: unique.slice(0, 5) };
     };
 
-    // Fetch RSS feeds + all stock news simultaneously
-    const [rssItems, ...stockNewsResults] = await Promise.all([
-      fetchAllRSS(),
-      ...topCandidates.map(fetchStockNews),
-    ]);
+    // Fetch RSS feeds first, then use them inside fetchStockNews
+    const rssItems = await fetchAllRSS();
+
+    // Fetch all stock news simultaneously
+    const stockNewsResults = await Promise.all(
+      topCandidates.map(fetchStockNews)
+    );
 
     // Build news map
     const companyNewsMap = {};
@@ -3058,7 +3060,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -3680,8 +3682,4 @@ setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Gap Scanner",
-  "description": "Gratis momentum aandelen scanner voor day traders in Europa. Gebaseerd op de strategie van Ross Cameron.",
-  "applicationCategory": "FinanceApplication",
-  "operat
+  "
