@@ -2099,7 +2099,24 @@ async function fmpFetch(endpoint, fmpKey) {
   if (res.status === 401 || res.status === 403) throw new Error('Ongeldige FMP API key.');
   if (res.status === 429) throw new Error('FMP rate limit bereikt. Je hebt 250 gratis calls per dag.');
   if (!res.ok) throw new Error(&#96;FMP fout &#36;{res.status}&#96;);
-  return res.json();
+  const data = await res.json();
+  // FMP wraps results in { mostGainerStock: [...] } or { mostLoserStock: [...] } etc.
+  // or returns a plain array — normalise to array
+  if (Array.isArray(data)) return data;
+  const key = Object.keys(data).find(k =&gt; Array.isArray(data[k]));
+  return key ? data[key] : [];
+}
+
+// Normalise a single FMP stock object — field names vary between endpoint versions
+function normFMP(s) {
+  const ticker    = (s.symbol ?? s.ticker ?? '').toUpperCase().trim();
+  // changesPercentage can be "5.23%" (string) or 5.23 (number)
+  const rawPct    = s.changesPercentage ?? s.changePercentage ?? s.change_percentage ?? 0;
+  const changePct = parseFloat(String(rawPct).replace('%','')) || 0;
+  const price     = parseFloat(s.price ?? s.currentPrice ?? 0) || 0;
+  const volume    = parseInt(s.volume ?? 0) || null;
+  const company   = s.companyName ?? s.name ?? s.company ?? '';
+  return { ticker, changePct, price, volume, company };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2119,22 +2136,20 @@ async function handleScan(url, finnhubKey, fmpKey) {
       fmpFetch('/actives', fmpKey).catch(() =&gt; []),
     ]);
 
-    // Merge + deduplicate
+    // Merge + deduplicate, normalise FMP field names
     const seen = new Set();
     const allStocks = [];
     for (const s of [...(gainersData || []), ...(activesData || [])]) {
-      const ticker = s.ticker ?? s.symbol ?? '';
-      if (!ticker || ticker.includes('.') || seen.has(ticker)) continue;
-      seen.add(ticker);
-      allStocks.push({ ...s, ticker });
+      const n = normFMP(s);
+      if (!n.ticker || n.ticker.includes('.') || n.ticker.includes('-') || seen.has(n.ticker)) continue;
+      seen.add(n.ticker);
+      allStocks.push(n);
     }
 
     // Step 2: Filter by price + gap criteria first
-    const candidates = allStocks.filter(s =&gt; {
-      const price     = parseFloat(s.price) ?? 0;
-      const changePct = parseFloat(s.changesPercentage) ?? 0;
-      return price &gt;= minPrice &amp;&amp; price &lt;= maxPrice &amp;&amp; changePct &gt;= minGap;
-    });
+    const candidates = allStocks.filter(s =&gt;
+      s.price &gt;= minPrice &amp;&amp; s.price &lt;= maxPrice &amp;&amp; s.changePct &gt;= minGap
+    );
 
     if (candidates.length === 0) {
       return ok({ ok: true, count: 0, scanned: allStocks.length, stocks: [], scannedAt: new Date().toISOString() });
@@ -2197,29 +2212,25 @@ async function handleScan(url, finnhubKey, fmpKey) {
       }
     }
 
-    // Step 5: Build final stock list
+    // Step 5: Build final stock list (s already normalised by normFMP)
     const stocks = candidates.map(s =&gt; {
-      const price     = parseFloat(s.price) ?? 0;
-      const changePct = parseFloat(s.changesPercentage) ?? 0;
-      const volume    = parseInt(s.volume) ?? null;
-      const news      = companyNewsMap[s.ticker];
-
+      const news = companyNewsMap[s.ticker];
       return {
         ticker:     s.ticker,
-        company:    s.companyName ?? s.name ?? '',
-        price:      +price.toFixed(2),
-        prevClose:  price &gt; 0 &amp;&amp; changePct !== 0
-                      ? +(price / (1 + changePct / 100)).toFixed(2)
+        company:    s.company,
+        price:      +s.price.toFixed(2),
+        prevClose:  s.price &gt; 0 &amp;&amp; s.changePct !== 0
+                      ? +(s.price / (1 + s.changePct / 100)).toFixed(2)
                       : null,
-        gapPct:     +changePct.toFixed(2),
-        volume,
+        gapPct:     +s.changePct.toFixed(2),
+        volume:     s.volume,
         relVol:     null,
         hasNews:    !!news,
         headline:   news?.title    ?? null,
         newsUrl:    news?.link     ?? null,
         newsSource: news?.source   ?? null,
         allNews:    news?.allNews  ?? [],
-        score:      calcScore(changePct, null, price, !!news),
+        score:      calcScore(s.changePct, null, s.price, !!news),
       };
     });
 
@@ -2259,8 +2270,13 @@ async function handleMovers(finnhubKey, fmpKey) {
     const dateTo   = today.toISOString().slice(0, 10);
 
     // Enrich top 10 gainers and top 10 losers with company news
-    const enrichStocks = async (stocks, limit = 10) =&gt; {
-      const top = (stocks || []).slice(0, limit);
+    const enrichStocks = async (rawStocks, limit = 10) =&gt; {
+      // Normalise FMP fields first
+      const top = (rawStocks || [])
+        .map(normFMP)
+        .filter(s =&gt; s.ticker &amp;&amp; !s.ticker.includes('.') &amp;&amp; !s.ticker.includes('-'))
+        .slice(0, limit);
+
       const newsResults = await Promise.all(
         top.map(s =&gt;
           finnhubKey
@@ -2271,25 +2287,21 @@ async function handleMovers(finnhubKey, fmpKey) {
         )
       );
       const newsMap = {};
-      for (const { ticker, news } of newsResults) {
-        newsMap[ticker] = news;
-      }
+      for (const { ticker, news } of newsResults) newsMap[ticker] = news;
+
       return top.map(s =&gt; {
-        const price     = parseFloat(s.price) ?? 0;
-        const changePct = parseFloat(s.changesPercentage) ?? 0;
-        const volume    = parseInt(s.volume) ?? null;
-        const news      = newsMap[s.ticker] ?? [];
+        const news = newsMap[s.ticker] ?? [];
         return {
-          ticker:     s.ticker,
-          company:    s.companyName ?? s.name ?? '',
-          price:      +price.toFixed(2),
-          changePct:  +changePct.toFixed(2),
-          prevClose:  price &gt; 0 &amp;&amp; changePct !== 0
-                        ? +(price / (1 + changePct / 100)).toFixed(2)
-                        : null,
-          volume,
-          hasNews:    news.length &gt; 0,
-          news:       news.map(n =&gt; ({
+          ticker:    s.ticker,
+          company:   s.company,
+          price:     +s.price.toFixed(2),
+          changePct: +s.changePct.toFixed(2),
+          prevClose: s.price &gt; 0 &amp;&amp; s.changePct !== 0
+                       ? +(s.price / (1 + s.changePct / 100)).toFixed(2)
+                       : null,
+          volume:    s.volume,
+          hasNews:   news.length &gt; 0,
+          news:      news.map(n =&gt; ({
             title:   n.headline,
             link:    n.url,
             source:  n.source ?? 'Finnhub',
