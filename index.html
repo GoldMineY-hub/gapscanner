@@ -647,6 +647,48 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
   cursor: pointer; white-space: nowrap;
 }
 .news-pill:hover { background: rgba(0,229,176,.18); }
+
+/* Company news expansion row */
+.news-expand-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid var(--border);
+}
+.news-expand-inner {
+  background: #060a0e;
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  display: none;
+}
+.news-expand-inner.open { display: block; }
+.news-expand-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+}
+.news-expand-item:last-child { border-bottom: none; }
+.news-expand-item:hover .news-expand-title { color: var(--accent); }
+.news-expand-source {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent2);
+  white-space: nowrap;
+  min-width: 80px;
+}
+.news-expand-title {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+  flex: 1;
+}
+.news-expand-time {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+}
 .no-cat { font-size: 10px; color: var(--border2); }
 
 /* State messages */
@@ -1641,20 +1683,25 @@ h2.section-title {
     </div>
   </div>
 
-  <!-- Config: API Key -->
+  <!-- Config: API Keys -->
   <div class="config-section" style="margin-bottom:14px">
     <div class="config-toggle" onclick="toggleConfig('key')">
       <span class="config-toggle-label">
         <span class="status-dot" id="keyDot"></span>
-        🔑 Finnhub API key invoeren
+        🔑 API keys invoeren
       </span>
       <span class="config-toggle-arrow" id="keyArrow">↓</span>
     </div>
     <div class="config-body" id="keyBody">
       <div class="config-row">
-        <label>API Key</label>
-        <input type="password" id="apiKey" class="key" placeholder="Plak hier je gratis Finnhub API key..." autocomplete="off">
-        <span class="config-note">Gratis key ophalen op <a href="https://finnhub.io" target="_blank">finnhub.io</a> — geen creditcard, werkt vanuit Europa.</span>
+        <label>FMP Key</label>
+        <input type="password" id="fmpKey" class="key" placeholder="Gratis FMP key voor de scanner (alle US aandelen)..." autocomplete="off">
+        <span class="config-note">Gratis op <a href="https://financialmodelingprep.com" target="_blank">financialmodelingprep.com</a> — 250 calls/dag gratis, werkt vanuit Europa.</span>
+      </div>
+      <div class="config-row">
+        <label>Finnhub Key</label>
+        <input type="password" id="apiKey" class="key" placeholder="Gratis Finnhub key voor nieuws en marktdata..." autocomplete="off">
+        <span class="config-note">Gratis op <a href="https://finnhub.io" target="_blank">finnhub.io</a> — voor nieuws en SPY/QQQ/VIX.</span>
       </div>
     </div>
   </div>
@@ -1671,7 +1718,7 @@ h2.section-title {
     </div>
     <div class="filter-group">
       <label>Max Prijs ($)</label>
-      <input type="number" id="maxPrice" value="20" min="1" step="0.5">
+      <input type="number" id="maxPrice" value="100" min="1" step="1">
     </div>
     <div class="filter-group">
       <label>Auto Refresh</label>
@@ -1834,7 +1881,8 @@ h2.section-title {
 
     <div class="setup-tabs">
       <button class="tab-btn active" onclick="switchTab('worker')">① Cloudflare Worker</button>
-      <button class="tab-btn" onclick="switchTab('finnhub')">② Finnhub API Key</button>
+      <button class="tab-btn" onclick="switchTab('fmp')">② FMP API Key (scanner)</button>
+      <button class="tab-btn" onclick="switchTab('finnhub')">③ Finnhub Key (nieuws)</button>
     </div>
 
     <div class="tab-content active" id="tab-worker">
@@ -1864,20 +1912,16 @@ h2.section-title {
                 <button class="copy-btn" onclick="copyCode('workerCode', this)">Kopieer code</button>
               </div>
               <pre id="workerCode">// ─────────────────────────────────────────────────────────────────────────────
-// Gap Scanner Worker — Finnhub API + Multi-source News RSS
+// Gap Scanner Worker — FMP (gainers) + Finnhub company news + RSS feeds
 //
-// Stock data:  Finnhub (free tier, real-time US quotes)
-// News feeds:  Benzinga RSS       — fast general market news
-//              GlobeNewswire RSS  — company press releases (FDA, earnings, contracts)
-//              PR Newswire RSS    — company press releases (catches what Globe misses)
+// Scan:    FMP /gainers + /actives — ALL US stocks, 2 API calls
+// News:    Finnhub /company-news per gapper — direct company news
+//          Benzinga RSS + GlobeNewswire RSS + PR Newswire RSS — background feeds
+// Market:  Finnhub (SPY, QQQ, VIX)
 //
-// All three RSS feeds run invisibly in the background — users only see results.
-//
-// Routes:
-//   GET /scan?key=...    — Gainers with news catalyst matching
-//   GET /market?key=...  — SPY, QQQ, VIX
-//   GET /news?key=...    — Merged headlines from all sources
-//   GET /health          — Uptime check
+// API keys:
+//   ?key=FINNHUB_KEY  — news + market data
+//   ?fmp=FMP_KEY      — gainers scan
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CORS = {
@@ -1887,13 +1931,13 @@ const CORS = {
   'Access-Control-Max-Age': '86400',
 };
 
-const FH_BASE = 'https://finnhub.io/api/v1';
+const FH_BASE  = 'https://finnhub.io/api/v1';
+const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
 
-// The three RSS feeds — fetched invisibly, never shown to user as config
 const RSS_FEEDS = [
-  { url: 'https://feeds.benzinga.com/benzinga',                          source: 'Benzinga' },
-  { url: 'https://www.globenewswire.com/RssFeed/industry/9600',          source: 'GlobeNewswire' },
-  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss',        source: 'PR Newswire' },
+  { url: 'https://feeds.benzinga.com/benzinga',                    source: 'Benzinga' },
+  { url: 'https://www.globenewswire.com/RssFeed/industry/9600',    source: 'GlobeNewswire' },
+  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss',  source: 'PR Newswire' },
 ];
 
 export default {
@@ -1901,240 +1945,173 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(request.url);
     const key = url.searchParams.get('key') ?? '';
+    const fmp = url.searchParams.get('fmp') ?? '';
 
     if (url.pathname === '/health') return ok({ ok: true, ts: new Date().toISOString() });
-    if (url.pathname === '/scan')   return handleScan(url, key);
+    if (url.pathname === '/scan')   return handleScan(url, key, fmp);
     if (url.pathname === '/market') return handleMarket(key);
     if (url.pathname === '/news')   return handleNews(key);
     if (url.pathname === '/videos') return handleVideos();
 
-    return new Response('Gap Scanner Worker — /scan /market /news /health', { headers: CORS });
+    return new Response('Gap Scanner Worker: /scan /market /news /videos /health', { headers: CORS });
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Finnhub helper
+// Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 async function fh(endpoint, key, params = {}) {
-  if (!key) throw new Error('No API key provided');
+  if (!key) throw new Error('Geen Finnhub API key opgegeven.');
   const u = new URL(&#96;&#36;{FH_BASE}&#36;{endpoint}&#96;);
   u.searchParams.set('token', key);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'GapScanner/1.0' } });
-  if (res.status === 401) throw new Error('Invalid API key — check your Finnhub key');
-  if (res.status === 429) throw new Error('Rate limit — wait a moment and try again');
-  if (!res.ok) throw new Error(&#96;Finnhub &#36;{res.status}&#96;);
+  if (res.status === 401) throw new Error('Ongeldige Finnhub API key.');
+  if (res.status === 429) throw new Error('Rate limit bereikt. Wacht even en probeer opnieuw.');
+  if (!res.ok) throw new Error(&#96;Finnhub fout &#36;{res.status}&#96;);
+  return res.json();
+}
+
+async function fmpFetch(endpoint, fmpKey) {
+  if (!fmpKey) throw new Error('Geen FMP API key opgegeven.');
+  const res = await fetch(&#96;&#36;{FMP_BASE}&#36;{endpoint}?apikey=&#36;{fmpKey}&#96;, { headers: { 'User-Agent': 'GapScanner/1.0' } });
+  if (res.status === 401 || res.status === 403) throw new Error('Ongeldige FMP API key.');
+  if (res.status === 429) throw new Error('FMP rate limit bereikt. Je hebt 250 gratis calls per dag.');
+  if (!res.ok) throw new Error(&#96;FMP fout &#36;{res.status}&#96;);
   return res.json();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RSS fetcher — fetches all three feeds simultaneously
+// /scan — FMP gainers + company-specific news per stock
 // ─────────────────────────────────────────────────────────────────────────────
-async function fetchAllRSS() {
-  const results = await Promise.allSettled(
-    RSS_FEEDS.map(feed =&gt; fetchRSS(feed.url, feed.source))
-  );
-
-  // Merge all items, deduplicate by title
-  const seen = new Set();
-  const all  = [];
-
-  for (const r of results) {
-    if (r.status !== 'fulfilled') continue;
-    for (const item of r.value) {
-      const key = item.title?.slice(0, 60);
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      all.push(item);
-    }
-  }
-
-  // Sort by date, newest first
-  return all.sort((a, b) =&gt; new Date(b.pubDate||0) - new Date(a.pubDate||0));
-}
-
-async function fetchRSS(url, source) {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent':      'Mozilla/5.0 (compatible; GapScanner/1.0)',
-        'Accept':          'application/rss+xml, application/xml, text/xml, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
-    });
-    if (!res.ok) return [];
-    const xml = await res.text();
-    return parseRSS(xml, source);
-  } catch(e) {
-    return [];
-  }
-}
-
-function parseRSS(xml, source) {
-  const items = [];
-  const strip = s =&gt; s
-    .replace(/&lt;!\[CDATA\[([\s\S]*?)\]\]&gt;/g, '$1')
-    .replace(/&lt;[^&gt;]+&gt;/g, '')
-    .replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;')
-    .replace(/&amp;quot;/g,'"').replace(/&amp;#39;/g,"'").replace(/&amp;nbsp;/g,' ')
-    .trim();
-
-  const itemRe = /&lt;item[^&gt;]*&gt;([\s\S]*?)&lt;\/item&gt;/gi;
-  let m;
-  while ((m = itemRe.exec(xml)) !== null) {
-    const chunk   = m[1];
-    const title   = strip(chunk.match(/&lt;title[^&gt;]*&gt;([\s\S]*?)&lt;\/title&gt;/i)?.[1] ?? '');
-    const link    = strip(chunk.match(/&lt;link[^&gt;]*&gt;([\s\S]*?)&lt;\/link&gt;/i)?.[1] ?? '');
-    const pubDate = strip(chunk.match(/&lt;pubDate[^&gt;]*&gt;([\s\S]*?)&lt;\/pubDate&gt;/i)?.[1] ?? '');
-    const desc    = strip(chunk.match(/&lt;description[^&gt;]*&gt;([\s\S]*?)&lt;\/description&gt;/i)?.[1] ?? '').slice(0, 150);
-
-    if (!title || title.length &lt; 5) continue;
-
-    // Extract ticker symbols — look for ($AAPL) or (AAPL) or standalone caps
-    const tickers = [...new Set([
-      // Explicit stock symbols in parentheses: (AAPL) or ($AAPL)
-      ...[...(title + ' ' + desc).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t =&gt; t[1]),
-      // ALL CAPS words that look like tickers (2-5 chars, not common words)
-      ...[...(title).matchAll(/\b([A-Z]{2,5})\b/g)]
-        .map(t =&gt; t[1])
-        .filter(t =&gt; !COMMON_WORDS.has(t)),
-    ])];
-
-    items.push({ title, link, pubDate, desc, source, tickers });
-  }
-  return items;
-}
-
-// Common uppercase words to exclude from ticker extraction
-const COMMON_WORDS = new Set([
-  'FDA','CEO','CFO','COO','IPO','ETF','NYSE','SEC','USD','GDP','CPI','AI',
-  'US','UK','EU','UN','Q1','Q2','Q3','Q4','AM','PM','EST','ET','PT','CT',
-  'LLC','INC','LTD','PLC','THE','AND','FOR','NEW','NOW','ITS','ARE','HAS',
-  'WAS','NOT','BUT','ALL','CAN','GET','GOT','SET','LET','PUT','MAY','SAY',
-  'TOP','BIG','LOW','HIGH','YTD','EPS','PE','PEG','MOM','DAD','DR','MR',
-]);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WATCHLIST — 300 known active small-cap / micro-cap US stocks
-// This is the universe Ross Cameron and momentum traders scan daily.
-// ─────────────────────────────────────────────────────────────────────────────
-const WATCHLIST = [...new Set([
-  // EV / Clean Energy
-  'FFIE','MULN','NKLA','RIDE','WKHS','SOLO','GOEV','AYRO','BLNK','CHPT',
-  'EVGO','PTRA','XPEV','LI','NIO','LCID','FSR','HYLN','IDEX','ZEV',
-  // Crypto / Blockchain
-  'MARA','RIOT','HUT','BITF','ARBK','CLSK','BTBT','IREN','WULF','CIFR',
-  'MIGI','SDIG','BTDR','CORZ','HIVE','DMGI','SOS','NCTY','EBON','BTCM',
-  // AI / Tech small cap
-  'BBAI','SOUN','AITX','MVIS','KOPN','VUZI','AEYE','GFAI','INPX','DMTK',
-  'VERB','ABTS','AEAC','NXTP','SINT','CODA','LAES','MFON','MUXA','BIMI',
-  // Biotech / Pharma
-  'SNDL','OCGN','NVAX','SRNE','CRBP','ADXS','ATOS','TTOO','BNGO','GEVO',
-  'TNXP','GOVX','VXRT','AGEN','ALDX','APTO','ARCT','ARDX','ARQT','ARWR',
-  'ATNX','AUTL','AVDL','AXSM','BCRX','SAVA','ADMA','ACST','BFRI','ACER',
-  'ACET','CRVS','KALA','LXRX','FGEN','HGEN','HTGM','INVA','LMNL','MDGL',
-  // Cannabis
-  'TLRY','CGC','ACB','CRON','HEXO','OGI','NEPT','APHA','IIPR','TPVG',
-  // Meme / Retail favorites
-  'AMC','GME','BBBY','KOSS','EXPR','NAKD','CTRM','SHIP','SPCE','WISH',
-  'PAYA','XELA','ATER','OPAD','IRNT','PROG','BBIG','HMBL','MMAT','CEI',
-  // Shipping / Energy
-  'INDO','IMPP','TOPS','GOGL','EGLE','EDRY','DRCT','AMPY','ASTI','FCEL',
-  'PLUG','BLDP','NFGC','TELL','HPNN','PGEN','ROIV','PNTM','LIZI','DPRO',
-  // Defense / Drone / Space
-  'RCAT','KTOS','AVAV','UAVS','ACHR','JOBY','ASTR','RKLB','LUNR','ASTS',
-  'MNTS','BWXT','SKYW','AIRO','UAVS','DPRO','DRON','SATL','SPIR','UXIN',
-  // Mining / Metals
-  'UAMY','USAS','MAG','EXK','AG','HL','PAAS','CDE','SILV','GATO',
-  'AUMN','GPL','AXU','ASM','IAUX','ATEX','GORO','HYMC','LODE','VGLD',
-  // China ADR small cap
-  'CIFS','CLPS','CPHI','CREG','CTIB','CTIC','CODA','BIMI','ILUS','EPAZ',
-  'BTBT','NCTY','SOS','EBON','BTCM','HPNN','XNET','GOTU','NTES','LAIX',
-  // Recent high-momentum / trending
-  'CELH','HIMS','DJT','FFAI','GENIE','LUCY','NVTS','KSCP','KULR','DAVE',
-  'CLBT','VIGL','HOLO','CLOV','SOFI','OPEN','SKLZ','UWMC','BARK','BODY',
-  'GREE','TRCH','NXGL','ZYNE','ATIF','EDTX','BWAY','PNTM','VIEW','PSFE',
-  // Active small caps general
-  'PHUN','MARK','GOVX','FPVD','DELT','ACMR','SING','RELI','NKTR','AKBA',
-  'CIDM','IDEANOMICS','MTTR','GEVO','SENS','TELA','NUO','MBOT','INVO',
-])];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// /scan — Quote all watchlist tickers in parallel, filter by gap criteria
-// ─────────────────────────────────────────────────────────────────────────────
-async function handleScan(url, key) {
-  if (!key) return err('Geen API key. Voer je Finnhub key in op de pagina.');
+async function handleScan(url, finnhubKey, fmpKey) {
+  if (!fmpKey) return err('Geen FMP API key. Voer je FMP key in op de pagina.');
   try {
     const p        = url.searchParams;
     const minGap   = parseFloat(p.get('minGap')   ?? '10');
     const minPrice = parseFloat(p.get('minPrice') ?? '1');
-    const maxPrice = parseFloat(p.get('maxPrice') ?? '20');
+    const maxPrice = parseFloat(p.get('maxPrice') ?? '100');
 
-    // Split watchlist into batches of 25 to respect 60 calls/min
-    const BATCH = 25;
-    const batches = [];
-    for (let i = 0; i &lt; WATCHLIST.length; i += BATCH) {
-      batches.push(WATCHLIST.slice(i, i + BATCH));
+    // Step 1: Get all gainers + actives from FMP simultaneously
+    const [gainersData, activesData] = await Promise.all([
+      fmpFetch('/gainers', fmpKey).catch(() =&gt; []),
+      fmpFetch('/actives', fmpKey).catch(() =&gt; []),
+    ]);
+
+    // Merge + deduplicate
+    const seen = new Set();
+    const allStocks = [];
+    for (const s of [...(gainersData || []), ...(activesData || [])]) {
+      const ticker = s.ticker ?? s.symbol ?? '';
+      if (!ticker || ticker.includes('.') || seen.has(ticker)) continue;
+      seen.add(ticker);
+      allStocks.push({ ...s, ticker });
     }
 
-    // Fetch news + all quote batches simultaneously
-    const [finnhubNews, rssItems, ...batchResults] = await Promise.all([
-      fh('/news', key, { category: 'general' }).catch(() =&gt; []),
+    // Step 2: Filter by price + gap criteria first
+    const candidates = allStocks.filter(s =&gt; {
+      const price     = parseFloat(s.price) ?? 0;
+      const changePct = parseFloat(s.changesPercentage) ?? 0;
+      return price &gt;= minPrice &amp;&amp; price &lt;= maxPrice &amp;&amp; changePct &gt;= minGap;
+    });
+
+    if (candidates.length === 0) {
+      return ok({ ok: true, count: 0, scanned: allStocks.length, stocks: [], scannedAt: new Date().toISOString() });
+    }
+
+    // Step 3: Get today's date range for company news
+    const today = new Date();
+    const from  = new Date(today); from.setDate(from.getDate() - 1);
+    const dateFrom = from.toISOString().slice(0, 10);
+    const dateTo   = today.toISOString().slice(0, 10);
+
+    // Step 4: Fetch company-specific news + RSS feeds simultaneously
+    // Limit company news to top 20 candidates to stay within Finnhub rate limits
+    const topCandidates = candidates.slice(0, 20);
+
+    const [rssItems, ...companyNewsResults] = await Promise.all([
       fetchAllRSS(),
-      ...batches.map(batch =&gt;
-        Promise.all(
-          batch.map(sym =&gt;
-            fh('/quote', key, { symbol: sym })
-              .then(q =&gt; ({ sym, q }))
-              .catch(() =&gt; null)
-          )
-        )
+      ...topCandidates.map(s =&gt;
+        finnhubKey
+          ? fh('/company-news', finnhubKey, { symbol: s.ticker, from: dateFrom, to: dateTo })
+              .then(news =&gt; ({ ticker: s.ticker, news: news || [] }))
+              .catch(() =&gt; ({ ticker: s.ticker, news: [] }))
+          : Promise.resolve({ ticker: s.ticker, news: [] })
       ),
     ]);
 
-    // Build news map: ticker -&gt; best news item
-    const newsMap = {};
-    for (const n of (finnhubNews || [])) {
-      if (!n.related) continue;
-      n.related.split(',').forEach(t =&gt; {
-        const sym = t.trim().toUpperCase();
-        if (sym &amp;&amp; !newsMap[sym])
-          newsMap[sym] = { title: n.headline, link: n.url, source: 'Finnhub', pubDate: n.datetime ? new Date(n.datetime*1000).toISOString() : null };
-      });
-    }
-    for (const item of rssItems) {
-      for (const sym of (item.tickers || []))
-        if (!newsMap[sym])
-          newsMap[sym] = { title: item.title, link: item.link, source: item.source, pubDate: item.pubDate };
+    // Build company news map: ticker -&gt; best/most relevant news item
+    const companyNewsMap = {};
+    for (const { ticker, news } of companyNewsResults) {
+      if (!news.length) continue;
+      // Sort by datetime descending, pick the most recent
+      const sorted = news.sort((a, b) =&gt; (b.datetime || 0) - (a.datetime || 0));
+      const best   = sorted[0];
+      companyNewsMap[ticker] = {
+        title:    best.headline,
+        link:     best.url,
+        source:   best.source ?? 'Finnhub',
+        pubDate:  best.datetime ? new Date(best.datetime * 1000).toISOString() : null,
+        allNews:  sorted.slice(0, 5).map(n =&gt; ({
+          title:   n.headline,
+          link:    n.url,
+          source:  n.source ?? 'Finnhub',
+          pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
+        })),
+      };
     }
 
-    // Filter results
-    const stocks = [];
-    for (const { sym, q } of batchResults.flat().filter(Boolean)) {
-      if (!q || !q.c || !q.pc || q.c === 0 || q.pc === 0) continue;
-      const price     = q.c;
-      const prevClose = q.pc;
-      const changePct = ((price - prevClose) / prevClose) * 100;
-      const volume    = q.v ?? null;
-      if (changePct &lt; minGap || price &lt; minPrice || price &gt; maxPrice) continue;
-      const news = newsMap[sym];
-      stocks.push({
-        ticker:     sym,
+    // Also check RSS feeds for any ticker mentions
+    for (const item of rssItems) {
+      for (const sym of (item.tickers || [])) {
+        if (!companyNewsMap[sym]) {
+          companyNewsMap[sym] = {
+            title:   item.title,
+            link:    item.link,
+            source:  item.source,
+            pubDate: item.pubDate,
+            allNews: [{ title: item.title, link: item.link, source: item.source, pubDate: item.pubDate }],
+          };
+        }
+      }
+    }
+
+    // Step 5: Build final stock list
+    const stocks = candidates.map(s =&gt; {
+      const price     = parseFloat(s.price) ?? 0;
+      const changePct = parseFloat(s.changesPercentage) ?? 0;
+      const volume    = parseInt(s.volume) ?? null;
+      const news      = companyNewsMap[s.ticker];
+
+      return {
+        ticker:     s.ticker,
+        company:    s.companyName ?? s.name ?? '',
         price:      +price.toFixed(2),
-        prevClose:  +prevClose.toFixed(2),
+        prevClose:  price &gt; 0 &amp;&amp; changePct !== 0
+                      ? +(price / (1 + changePct / 100)).toFixed(2)
+                      : null,
         gapPct:     +changePct.toFixed(2),
         volume,
         relVol:     null,
         hasNews:    !!news,
-        headline:   news?.title   ?? null,
-        newsUrl:    news?.link    ?? null,
-        newsSource: news?.source  ?? null,
+        headline:   news?.title    ?? null,
+        newsUrl:    news?.link     ?? null,
+        newsSource: news?.source   ?? null,
+        allNews:    news?.allNews  ?? [],
         score:      calcScore(changePct, null, price, !!news),
-      });
-    }
+      };
+    });
 
     stocks.sort((a, b) =&gt; b.score - a.score);
-    return ok({ ok: true, count: stocks.length, scanned: WATCHLIST.length, stocks, scannedAt: new Date().toISOString() });
+
+    return ok({
+      ok:        true,
+      count:     stocks.length,
+      scanned:   allStocks.length,
+      source:    'FMP gainers (alle US aandelen)',
+      stocks,
+      scannedAt: new Date().toISOString(),
+    });
 
   } catch(e) {
     return err(e.message);
@@ -2145,38 +2122,25 @@ async function handleScan(url, key) {
 // /market — SPY, QQQ, VIX
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleMarket(key) {
-  if (!key) return err('No API key');
+  if (!key) return err('Geen Finnhub API key.');
   try {
     const [spy, qqq, vix] = await Promise.all([
-      fh('/quote', key, { symbol: 'SPY'  }),
-      fh('/quote', key, { symbol: 'QQQ'  }),
-      fh('/quote', key, { symbol: 'VIX'  }).catch(() =&gt; null),
+      fh('/quote', key, { symbol: 'SPY' }),
+      fh('/quote', key, { symbol: 'QQQ' }),
+      fh('/quote', key, { symbol: 'VIX' }).catch(() =&gt; null),
     ]);
-
     const fmt = (q, sym) =&gt; q ? {
-      symbol:    sym,
-      price:     q.c,
+      symbol: sym, price: q.c,
       changePct: q.pc &gt; 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : null,
-      prevClose: q.pc,
-      high:      q.h,
-      low:       q.l,
-    } : { symbol: sym, error: 'No data' };
-
+      prevClose: q.pc, high: q.h, low: q.l,
+    } : { symbol: sym, error: 'Geen data' };
     return ok({ ok: true, spy: fmt(spy,'SPY'), qqq: fmt(qqq,'QQQ'), vix: fmt(vix,'VIX'), ts: new Date().toISOString() });
-  } catch(e) {
-    return err(e.message);
-  }
+  } catch(e) { return err(e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// /news — merged + smart ranked headlines
-// Ranking score per item:
-//   +40  ticker matches a scan result (most actionable)
-//   +20  high-impact catalyst keywords (FDA, earnings, approval etc.)
-//   +15  Benzinga source (fastest, most relevant for day trading)
-//   +10  GlobeNewswire source (press releases = real catalysts)
-//   +5   PR Newswire source
-//   +0-10 recency (newer = higher, decays over 2 hours)
+// /news — General news feed (Finnhub + RSS, smart ranked)
+// Used for the news panel. Scan results have their own company news.
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleNews(key) {
   try {
@@ -2186,156 +2150,104 @@ async function handleNews(key) {
     ]);
 
     const raw = [];
+    for (const n of (finnhubNews || []).slice(0, 20))
+      raw.push({ title: n.headline, link: n.url, source: n.source ?? 'Finnhub', pubDate: n.datetime ? new Date(n.datetime*1000).toISOString() : null, tickers: n.related ? n.related.split(',').map(t=&gt;t.trim()).filter(Boolean) : [] });
+    for (const r of rssItems.slice(0, 60))
+      raw.push({ title: r.title, link: r.link, source: r.source, pubDate: r.pubDate, tickers: r.tickers ?? [] });
 
-    // Finnhub items
-    for (const n of (finnhubNews || []).slice(0, 20)) {
-      raw.push({
-        title:   n.headline,
-        link:    n.url,
-        source:  n.source ?? 'Finnhub',
-        pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
-        tickers: n.related ? n.related.split(',').map(t =&gt; t.trim()).filter(Boolean) : [],
-      });
-    }
+    const CATALYST = ['fda','approval','approved','clearance','earnings','revenue','beat','beats','guidance','merger','acquisition','acquires','contract','award','partnership','deal','ipo','offering','uplisting','clinical','trial','phase','breakthrough','record','surge'];
+    const srcScore = s =&gt; { s=(s||'').toLowerCase(); return s.includes('benzinga')?15:s.includes('globe')?10:s.includes('pr newswire')||s.includes('prnews')?10:0; };
+    const ageScore = d =&gt; { if(!d)return 0; try{ const m=(Date.now()-new Date(d).getTime())/60000; return m&lt;30?10:m&lt;60?7:m&lt;120?4:1; }catch{return 0;} };
+    const catScore = t =&gt; { if(!t)return 0; const l=t.toLowerCase(); return CATALYST.some(w=&gt;l.includes(w))?20:0; };
 
-    // RSS items
-    for (const r of rssItems.slice(0, 60)) {
-      raw.push({
-        title:   r.title,
-        link:    r.link,
-        source:  r.source,
-        pubDate: r.pubDate,
-        tickers: r.tickers ?? [],
-      });
-    }
-
-    // Catalyst keywords that signal a real market-moving event
-    const CATALYST_WORDS = [
-      'fda','approval','approved','approves','clearance','clears',
-      'earnings','revenue','profit','beat','beats','miss','guidance',
-      'merger','acquisition','acquires','takeover','buyout',
-      'contract','award','awarded','partnership','deal',
-      'ipo','offering','uplisting',
-      'clinical','trial','phase','data','results',
-      'breakthrough','exclusive','major','record','surge',
-    ];
-
-    // Source quality scores
-    const sourceScore = src =&gt; {
-      const s = (src || '').toLowerCase();
-      if (s.includes('benzinga'))                              return 15;
-      if (s.includes('globe') || s.includes('globenews'))     return 10;
-      if (s.includes('pr newswire') || s.includes('prnews'))  return 10;
-      return 0;
-    };
-
-    // Recency score — 10 pts if &lt; 30 min, decays to 0 at 2 hours
-    const recencyScore = pubDate =&gt; {
-      if (!pubDate) return 0;
-      try {
-        const ageMin = (Date.now() - new Date(pubDate).getTime()) / 60000;
-        if (ageMin &lt; 30)  return 10;
-        if (ageMin &lt; 60)  return 7;
-        if (ageMin &lt; 120) return 4;
-        return 1;
-      } catch(e) { return 0; }
-    };
-
-    // Catalyst keyword score
-    const catalystScore = title =&gt; {
-      if (!title) return 0;
-      const t = title.toLowerCase();
-      return CATALYST_WORDS.some(w =&gt; t.includes(w)) ? 20 : 0;
-    };
-
-    // Score every item
-    const scored = raw.map(item =&gt; ({
-      ...item,
-      _score: sourceScore(item.source)
-             + recencyScore(item.pubDate)
-             + catalystScore(item.title)
-             + (item.tickers?.length &gt; 0 ? 5 : 0),
-    }));
-
-    // Sort by score descending, then by recency as tiebreaker
-    scored.sort((a, b) =&gt; {
-      if (b._score !== a._score) return b._score - a._score;
-      return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
-    });
-
-    // Remove internal score field before returning
-    const items = scored.slice(0, 50).map(({ _score, ...item }) =&gt; item);
-
+    const scored = raw.map(item =&gt; ({...item, _score: srcScore(item.source)+ageScore(item.pubDate)+catScore(item.title)+(item.tickers?.length&gt;0?5:0)}));
+    scored.sort((a,b) =&gt; b._score!==a._score ? b._score-a._score : new Date(b.pubDate||0)-new Date(a.pubDate||0));
+    const items = scored.slice(0,50).map(({_score,...item})=&gt;item);
     return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
-  } catch(e) {
-    return err(e.message);
-  }
+  } catch(e) { return err(e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// /videos — Latest Ross Cameron YouTube videos via free RSS feed
+// /videos — Ross Cameron YouTube RSS
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleVideos() {
   try {
-    const CHANNEL_ID = 'UCBayuhgYpKNbhJxfExYkPfA';
-    const res = await fetch(
-      &#96;https://www.youtube.com/feeds/videos.xml?channel_id=&#36;{CHANNEL_ID}&#96;,
-      { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GapScanner/1.0)' } }
-    );
-    if (!res.ok) throw new Error(&#96;YouTube feed error &#36;{res.status}&#96;);
+    const res = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=UCBayuhgYpKNbhJxfExYkPfA', { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!res.ok) throw new Error(&#96;YouTube fout &#36;{res.status}&#96;);
     const xml = await res.text();
-
     const videos = [];
     const entryRe = /&lt;entry&gt;([\s\S]*?)&lt;\/entry&gt;/gi;
     let m;
-
     while ((m = entryRe.exec(xml)) !== null) {
-      const chunk = m[1];
-
-      const videoId  = (chunk.match(/&lt;yt:videoId&gt;([^&lt;]+)&lt;\/yt:videoId&gt;/)  || [])[1] ?? '';
-      const title    = (chunk.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)             || [])[1] ?? '';
-      const pubDate  = (chunk.match(/&lt;published&gt;([^&lt;]+)&lt;\/published&gt;/)     || [])[1] ?? '';
-      const thumb    = &#96;https://i.ytimg.com/vi/&#36;{videoId}/mqdefault.jpg&#96;;
-      const url      = &#96;https://www.youtube.com/watch?v=&#36;{videoId}&#96;;
-
+      const c = m[1];
+      const videoId = (c.match(/&lt;yt:videoId&gt;([^&lt;]+)&lt;\/yt:videoId&gt;/) || [])[1] ?? '';
+      const title   = (c.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)            || [])[1] ?? '';
+      const pubDate = (c.match(/&lt;published&gt;([^&lt;]+)&lt;\/published&gt;/)    || [])[1] ?? '';
       if (!videoId) continue;
-
-      videos.push({
-        videoId,
-        title:   title.replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;').replace(/&amp;#39;/g,"'").replace(/&amp;quot;/g,'"').trim(),
-        pubDate,
-        thumb,
-        url,
-      });
-
+      videos.push({ videoId, title: title.replace(/&amp;amp;/g,'&amp;').replace(/&amp;#39;/g,"'").trim(), pubDate, thumb: &#96;https://i.ytimg.com/vi/&#36;{videoId}/mqdefault.jpg&#96;, url: &#96;https://www.youtube.com/watch?v=&#36;{videoId}&#96; });
       if (videos.length &gt;= 6) break;
     }
-
     return ok({ ok: true, count: videos.length, videos, ts: new Date().toISOString() });
-  } catch(e) {
-    return err(e.message);
-  }
+  } catch(e) { return err(e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// RSS feeds
 // ─────────────────────────────────────────────────────────────────────────────
+async function fetchAllRSS() {
+  const results = await Promise.allSettled(RSS_FEEDS.map(f =&gt; fetchRSS(f.url, f.source)));
+  const seen = new Set(), all = [];
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    for (const item of r.value) {
+      const k = item.title?.slice(0,60);
+      if (!k || seen.has(k)) continue;
+      seen.add(k); all.push(item);
+    }
+  }
+  return all.sort((a,b) =&gt; new Date(b.pubDate||0)-new Date(a.pubDate||0));
+}
+
+async function fetchRSS(url, source) {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml,*/*' } });
+    if (!res.ok) return [];
+    return parseRSS(await res.text(), source);
+  } catch { return []; }
+}
+
+function parseRSS(xml, source) {
+  const items = [];
+  const strip = s =&gt; s.replace(/&lt;!\[CDATA\[([\s\S]*?)\]\]&gt;/g,'$1').replace(/&lt;[^&gt;]+&gt;/g,'').replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;').replace(/&amp;quot;/g,'"').replace(/&amp;#39;/g,"'").trim();
+  const SKIP  = new Set(['FDA','CEO','CFO','IPO','ETF','NYSE','SEC','USD','GDP','AI','US','UK','EU','Q1','Q2','Q3','Q4','AM','PM','EST','ET','LLC','INC','LTD','THE','AND','FOR','NEW','NOT','ALL','TOP']);
+  const itemRe = /&lt;item[^&gt;]*&gt;([\s\S]*?)&lt;\/item&gt;/gi;
+  let m;
+  while ((m = itemRe.exec(xml)) !== null) {
+    const c = m[1];
+    const title   = strip(c.match(/&lt;title[^&gt;]*&gt;([\s\S]*?)&lt;\/title&gt;/i)?.[1]??'');
+    const link    = strip(c.match(/&lt;link[^&gt;]*&gt;([\s\S]*?)&lt;\/link&gt;/i)?.[1]??'');
+    const pubDate = strip(c.match(/&lt;pubDate[^&gt;]*&gt;([\s\S]*?)&lt;\/pubDate&gt;/i)?.[1]??'');
+    if (!title || title.length &lt; 5) continue;
+    const tickers = [...new Set([
+      ...[...(title).matchAll(/\(\$?([A-Z]{1,6})\)/g)].map(t=&gt;t[1]),
+      ...[...(title).matchAll(/\b([A-Z]{2,5})\b/g)].map(t=&gt;t[1]).filter(t=&gt;!SKIP.has(t)),
+    ])];
+    items.push({ title, link, pubDate, source, tickers });
+  }
+  return items;
+}
+
 function calcScore(gapPct, relVol, price, hasNews = false) {
   let s = Math.min(40, (gapPct / 100) * 40);
-  if (relVol != null) s += Math.min(25, ((relVol - 1) / 9) * 25);
-  if (price &gt;= 2  &amp;&amp; price &lt;= 10) s += 10;
-  else if (price &gt; 10 &amp;&amp; price &lt;= 20) s += 5;
-  if (hasNews) s += 20; // news catalyst is a major boost
+  if (relVol != null) s += Math.min(25, ((relVol-1)/9)*25);
+  if (price &gt;= 1  &amp;&amp; price &lt;= 20)  s += 10;
+  else if (price &gt; 20 &amp;&amp; price &lt;= 100) s += 5;
+  if (hasNews) s += 20;
   return Math.round(Math.min(100, s));
 }
 
-function ok(data) {
-  return new Response(JSON.stringify(data), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-}
-
-function err(msg, status = 500) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
-}
+function ok(data)       { return new Response(JSON.stringify(data), { headers: { ...CORS, 'Content-Type': 'application/json' } }); }
+function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } }); }
 </pre>
             </div>
           </div>
@@ -2354,6 +2266,41 @@ function err(msg, status = 500) {
           <div class="step-body">
             <div class="step-title">Voer de URL in de scanner in</div>
             <div class="step-desc">Scroll naar boven, open het veld <strong>Worker URL instellen</strong>, plak je URL erin en klik op <strong>Test</strong>. Je ziet "● Verbonden" als alles goed is.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-fmp">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Ga naar financialmodelingprep.com</div>
+            <div class="step-desc">Open <a href="https://financialmodelingprep.com" target="_blank">financialmodelingprep.com</a> en klik op <strong>Get Free API Key</strong>. Geen creditcard nodig, werkt vanuit heel Europa.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Maak een gratis account aan</div>
+            <div class="step-desc">Vul je e-mailadres in en bevestig je account. Je krijgt <strong>250 gratis API calls per dag</strong>. De scanner gebruikt 2 calls per scan (gainers + actives) dus je kunt wel 100 keer per dag scannen.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Kopieer je FMP API key</div>
+            <div class="step-desc">Na het inloggen vind je je API key op het dashboard. Die ziet er zo uit:
+              <span class="step-code">jouwfmpapikey123abc</span>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Voer de key in de scanner in</div>
+            <div class="step-desc">Scroll naar boven, open het veld <strong>FMP Key</strong> en plak je key erin. De FMP key zorgt ervoor dat de scanner <strong>alle US aandelen</strong> scant in plaats van een vaste lijst. Zo mis je nooit een gapper.</div>
           </div>
         </div>
       </div>
@@ -2552,11 +2499,14 @@ let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=n
 // ── Persist ───────────────────────────────────────────────────────────────────
 const $workerUrl = document.getElementById('workerUrl');
 const $apiKey    = document.getElementById('apiKey');
+const $fmpKey    = document.getElementById('fmpKey');
 
 const sw = localStorage.getItem('gap_worker_url');
-const sk = localStorage.getItem('gap_finnhub_key');
+const sk  = localStorage.getItem('gap_finnhub_key');
+const sfmp = localStorage.getItem('gap_fmp_key');
 if (sw) { $workerUrl.value = sw; updateDot('workerDot', true); }
-if (sk) { $apiKey.value = sk;    updateDot('keyDot', true); }
+if (sk)  { $apiKey.value = sk;   updateDot('keyDot', true); }
+if (sfmp){ $fmpKey.value = sfmp; updateDot('keyDot', true); }
 
 $workerUrl.addEventListener('input', function() {
   localStorage.setItem('gap_worker_url', this.value.trim());
@@ -2567,6 +2517,10 @@ $apiKey.addEventListener('input', function() {
   localStorage.setItem('gap_finnhub_key', this.value.trim());
   updateDot('keyDot', !!this.value.trim());
   if (this.value.trim() && base()) loadSidebar();
+});
+$fmpKey.addEventListener('input', function() {
+  localStorage.setItem('gap_fmp_key', this.value.trim());
+  updateDot('keyDot', !!this.value.trim());
 });
 
 function updateDot(id, set) {
@@ -2596,7 +2550,7 @@ function toggleConfig(which) {
 
 // Auto-open config if not set
 if (!sw) toggleConfig('worker');
-else if (!sk) toggleConfig('key');
+else if (!sk && !sfmp) toggleConfig('key');
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 function updateClock() {
@@ -2616,13 +2570,15 @@ setInterval(updateClock, 1000); updateClock();
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function base() { return $workerUrl.value.trim().replace(/\/$/,''); }
 function apiKey(){ return $apiKey.value.trim(); }
+function fmpKey(){ return $fmpKey.value.trim(); }
 
 async function call(path) {
   const b = base();
   if (!b) throw new Error('Geen Worker URL ingesteld');
   const k   = apiKey();
   const sep = path.includes('?') ? '&' : '?';
-  const url = k ? `${b}${path}${sep}key=${encodeURIComponent(k)}` : `${b}${path}`;
+  const fk  = fmpKey();
+  const url = `${b}${path}${sep}key=${encodeURIComponent(k)}${fk ? '&fmp='+encodeURIComponent(fk) : ''}`;
   const res = await fetch(url);
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'Worker fout');
@@ -2654,7 +2610,7 @@ function setAutoRefresh(val) {
 // ── Scan ──────────────────────────────────────────────────────────────────────
 async function runScan() {
   if (!base())   { toast('Voer eerst je Worker URL in','err'); return; }
-  if (!apiKey()) { toast('Voer eerst je Finnhub API key in','err'); return; }
+  if (!fmpKey()) { toast('Voer eerst je FMP API key in voor de scanner','err'); return; }
   const minGap   = document.getElementById('minGap').value   || 10;
   const minPrice = document.getElementById('minPrice').value || 1;
   const maxPrice = document.getElementById('maxPrice').value || 20;
@@ -2684,6 +2640,56 @@ function renderTable() {
   document.getElementById('rcount').textContent=`${results.length} aandeel${results.length!==1?'en':''}`;
   const sorted=[...results].sort((a,b)=>sortDir*((b[sortCol]??-Infinity)-(a[sortCol]??-Infinity)));
   const th=(k,l)=>`<th class="${sortCol===k?'sorted':''}" onclick="sortBy('${k}')">${l}${sortCol===k?(sortDir===-1?' ↓':' ↑'):''}</th>`;
+
+  const fmtTime = iso => {
+    if (!iso) return '';
+    try { return new Date(iso).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); }
+    catch(e) { return ''; }
+  };
+
+  const rows = sorted.map((s, i) => {
+    const newsCount = s.allNews?.length ?? 0;
+    const newsBtn = s.hasNews
+      ? `<span class="news-pill" onclick="event.stopPropagation();toggleStockNews(${i})">${newsCount > 1 ? newsCount + ' berichten' : '📰 Nieuws'} ▾</span>`
+      : `<span class="no-cat">—</span>`;
+
+    const newsRows = s.allNews?.length
+      ? `<tr class="news-expand-row" id="news-row-${i}">
+          <td colspan="7">
+            <div class="news-expand-inner" id="news-inner-${i}">
+              ${s.allNews.map(n => `
+                <a class="news-expand-item" href="${n.link||'#'}" target="_blank" rel="noopener">
+                  <span class="news-expand-source">${(n.source||'').toUpperCase().slice(0,10)}</span>
+                  <span class="news-expand-title">${n.title||''}</span>
+                  <span class="news-expand-time">${fmtTime(n.pubDate)}</span>
+                </a>`).join('')}
+            </div>
+          </td>
+        </tr>`
+      : '';
+
+    return `
+      <tr class="${s.isNew?'new-entry':''}" onclick="window.open('https://finance.yahoo.com/quote/${s.ticker}','_blank')" style="cursor:pointer">
+        <td class="td-ticker">
+          ${s.ticker}
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);display:block;font-weight:400">${s.company?.slice(0,18)||''}</span>
+          ${s.isNew?'<span class="atag new">NIEUW</span>':''}
+          ${(s.gapPct??0)>30?'<span class="atag hot">HOT</span>':''}
+        </td>
+        <td class="td-gap">+${s.gapPct?.toFixed(1)??'—'}%</td>
+        <td>$${s.price?.toFixed(2)??'—'}</td>
+        <td class="td-muted">$${s.prevClose?.toFixed(2)??'—'}</td>
+        <td class="td-muted">${fmtVol(s.volume)}</td>
+        <td onclick="event.stopPropagation()">${newsBtn}</td>
+        <td>
+          <div class="score-bar">
+            <div class="score-track"><div class="score-fill" style="width:${s.score}%"></div></div>
+            <span class="score-num">${s.score}</span>
+          </div>
+        </td>
+      </tr>${newsRows}`;
+  }).join('');
+
   document.getElementById('tableContainer').innerHTML=`
     <table>
       <thead><tr>
@@ -2692,32 +2698,25 @@ function renderTable() {
         ${th('price','Prijs')}
         ${th('prevClose','Gisteren')}
         ${th('volume','Volume')}
-        <th>Nieuws</th>
+        <th>Bedrijfsnieuws</th>
         ${th('score','Score')}
       </tr></thead>
-      <tbody>${sorted.map(s=>`
-        <tr class="${s.isNew?'new-entry':''}" onclick="window.open('https://finance.yahoo.com/quote/${s.ticker}','_blank')">
-          <td class="td-ticker">
-            ${s.ticker}
-            ${s.isNew?'<span class="atag new">NIEUW</span>':''}
-            ${(s.gapPct??0)>30?'<span class="atag hot">HOT</span>':''}
-          </td>
-          <td class="td-gap">+${s.gapPct?.toFixed(1)??'—'}%</td>
-          <td>$${s.price?.toFixed(2)??'—'}</td>
-          <td class="td-muted">$${s.prevClose?.toFixed(2)??'—'}</td>
-          <td class="td-muted">${fmtVol(s.volume)}</td>
-          <td>${s.hasNews
-            ?`<span class="news-pill" title="${s.headline||''}" onclick="event.stopPropagation();window.open('${s.newsUrl||'#'}','_blank')">📰 Nieuws →</span>`
-            :`<span class="no-cat">—</span>`}</td>
-          <td>
-            <div class="score-bar">
-              <div class="score-track"><div class="score-fill" style="width:${s.score}%"></div></div>
-              <span class="score-num">${s.score}</span>
-            </div>
-          </td>
-        </tr>`).join('')}
-      </tbody>
+      <tbody>${rows}</tbody>
     </table>`;
+}
+
+function toggleStockNews(i) {
+  const inner = document.getElementById(`news-inner-${i}`);
+  if (!inner) return;
+  inner.classList.toggle('open');
+  // Update the button text
+  const btn = document.querySelector(`[onclick*="toggleStockNews(${i})"]`);
+  if (btn) {
+    const isOpen = inner.classList.contains('open');
+    btn.textContent = isOpen
+      ? btn.textContent.replace('▾','▴')
+      : btn.textContent.replace('▴','▾');
+  }
 }
 
 function sortBy(col) { if(sortCol===col)sortDir*=-1; else{sortCol=col;sortDir=-1;} renderTable(); }
@@ -2914,7 +2913,7 @@ function toggleMoreNews(btn) {
 function setState(s, msg='') {
   const m = {
     loading: `<div class="state-msg"><p><span class="spinner"></span>Data ophalen via Finnhub...</p><small>Gappers identificeren en nieuws matchen...</small></div>`,
-    empty:   `<div class="state-msg"><div class="icon">📭</div><p>Geen gappers gevonden in de 300 gescande aandelen.</p><small>Verlaag Min Gap % of wacht tot de markt opengaat (15:30 CET).</small></div>`,
+    empty:   `<div class="state-msg"><div class="icon">📭</div><p>Geen gappers gevonden in alle US aandelen.</p><small>Verlaag Min Gap % of wacht tot de markt opengaat (15:30 CET).</small></div>`,
     error:   `<div class="state-msg"><div class="icon">⚠️</div><p style="color:var(--red)">${msg}</p><small>Controleer je Worker URL en API key.</small></div>`,
   };
   if (m[s]) document.getElementById('tableContainer').innerHTML=m[s];
