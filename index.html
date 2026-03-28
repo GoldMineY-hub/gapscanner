@@ -2209,34 +2209,6 @@ async function handleScan(url, finnhubKey, fmpKey) {
     };
 
     // Score a news item — higher = more relevant catalyst
-    const newsScore = (n) =&gt; {
-      let s = 0;
-      const src   = (n.source  || '').toLowerCase();
-      const title = (n.title   || n.headline || '').toLowerCase();
-      // Source quality
-      if (src.includes('sec.gov') || src === 'sec edgar')  s += 50;
-      if (src.includes('businesswire'))                     s += 30;
-      if (src.includes('globenewswire'))                    s += 25;
-      if (src.includes('prnewswire') || src.includes('pr newswire')) s += 25;
-      if (src.includes('accesswire'))                       s += 25;
-      if (src.includes('yahoo'))                            s += 20;
-      if (src.includes('benzinga'))                         s += 15;
-      // Catalyst keywords
-      const catalysts = ['fda','approval','approved','clearance','clears',
-        'earnings','revenue','beat','guidance','merger','acquisition','acquires',
-        'contract','award','partnership','deal','ipo','offering','uplisting',
-        'clinical','trial','phase','data','results','grant','license',
-        'breakthrough','record','expands','launches','announces'];
-      if (catalysts.some(w =&gt; title.includes(w))) s += 20;
-      // Recency bonus (within last 4 hours)
-      const ts = n.datetime || (n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0);
-      const ageHrs = (Date.now()/1000 - ts) / 3600;
-      if (ageHrs &lt; 1)  s += 15;
-      else if (ageHrs &lt; 4)  s += 8;
-      else if (ageHrs &lt; 12) s += 3;
-      return s;
-    };
-
     // Limit to top 15 candidates by gap %
     const topCandidates = candidates.slice(0, 15);
 
@@ -2718,6 +2690,32 @@ function calcScore(gapPct, relVol, price, hasNews = false) {
   return Math.round(Math.min(100, s));
 }
 
+// Score a news item by source quality, catalyst keywords and recency
+function newsScore(n) {
+  let s = 0;
+  const src   = (n.source  || '').toLowerCase();
+  const title = (n.title   || n.headline || '').toLowerCase();
+  if (src.includes('sec.gov') || src === 'sec edgar')          s += 50;
+  if (src.includes('businesswire'))                            s += 30;
+  if (src.includes('globenewswire'))                           s += 25;
+  if (src.includes('prnewswire') || src.includes('pr newswire')) s += 25;
+  if (src.includes('accesswire'))                              s += 25;
+  if (src.includes('yahoo'))                                   s += 20;
+  if (src.includes('benzinga'))                                s += 15;
+  const catalysts = ['fda','approval','approved','clearance','clears',
+    'earnings','revenue','beat','guidance','merger','acquisition','acquires',
+    'contract','award','partnership','deal','ipo','offering','uplisting',
+    'clinical','trial','phase','data','results','grant','license',
+    'breakthrough','record','expands','launches','announces'];
+  if (catalysts.some(w =&gt; title.includes(w))) s += 20;
+  const ts = n.datetime || (n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0);
+  const ageHrs = (Date.now()/1000 - ts) / 3600;
+  if (ageHrs &lt; 1)       s += 15;
+  else if (ageHrs &lt; 4)  s += 8;
+  else if (ageHrs &lt; 12) s += 3;
+  return s;
+}
+
 function ok(data)       { return new Response(JSON.stringify(data), { headers: { ...CORS, 'Content-Type': 'application/json' } }); }
 function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, error: msg }), { status, headers: { ...CORS, 'Content-Type': 'application/json' } }); }
 </pre>
@@ -3060,7 +3058,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -3686,19 +3684,4 @@ setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
   "name": "Gap Scanner",
   "description": "Gratis momentum aandelen scanner voor day traders in Europa. Gebaseerd op de strategie van Ross Cameron.",
   "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Web",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "EUR"
-  },
-  "inLanguage": "nl",
-  "audience": {
-    "@type": "Audience",
-    "geographicArea": "Europa"
-  }
-}
-</script>
-
-</body>
-</html>
+  "operat
