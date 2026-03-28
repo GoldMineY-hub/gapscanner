@@ -1256,6 +1256,107 @@ h2.section-title {
   .footer-bottom { flex-direction: column; align-items: flex-start; }
 }
 
+/* ── Movers section ── */
+.movers-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.movers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.movers-head h2 {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.movers-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.movers-tab {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  padding: 5px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all .15s;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+}
+
+.movers-tab:last-child { border-right: none; }
+.movers-tab.active-gain { background: rgba(0,229,176,.12); color: var(--accent); }
+.movers-tab.active-loss { background: rgba(244,63,94,.12);  color: var(--red); }
+.movers-tab:hover:not(.active-gain):not(.active-loss) { color: var(--text); }
+
+.movers-body { overflow-x: auto; }
+
+.movers-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.movers-table thead th {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.movers-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+  cursor: pointer;
+}
+.movers-table tbody tr:hover { background: var(--surface2); }
+.movers-table tbody tr:last-child { border-bottom: none; }
+.movers-table td {
+  padding: 9px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mover-pct-up   { font-weight: 600; color: var(--accent); }
+.mover-pct-down { font-weight: 600; color: var(--red); }
+
+.mover-news-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid var(--border);
+}
+.mover-news-inner {
+  background: #060a0e;
+  border-top: 1px solid var(--border);
+  padding: 8px 14px;
+  display: none;
+}
+.mover-news-inner.open { display: block; }
+
 /* ── YouTube Videos ── */
 .youtube-section {
   padding: 0 32px 80px;
@@ -1769,6 +1870,25 @@ h2.section-title {
     </div>
   </div>
 
+  <!-- Yesterday's Movers -->
+  <div class="movers-section">
+    <div class="movers-head">
+      <h2>Gisteren's Movers</h2>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="movers-tabs">
+          <button class="movers-tab active-gain" id="moversTabGain" onclick="switchMovers('gain')">📈 Stijgers</button>
+          <button class="movers-tab" id="moversTabLoss" onclick="switchMovers('loss')">📉 Dalers</button>
+        </div>
+        <button class="btn-sm" onclick="loadMovers()">↻</button>
+      </div>
+    </div>
+    <div class="movers-body" id="moversContainer">
+      <div class="state-msg" style="padding:24px">
+        <p>Voer je FMP key in om gisteren's movers te laden.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- News feed -->
   <div class="news-section">
     <div class="news-section-head">
@@ -1951,6 +2071,7 @@ export default {
     if (url.pathname === '/scan')   return handleScan(url, key, fmp);
     if (url.pathname === '/market') return handleMarket(key);
     if (url.pathname === '/news')   return handleNews(key);
+    if (url.pathname === '/movers') return handleMovers(key, fmp);
     if (url.pathname === '/videos') return handleVideos();
 
     return new Response('Gap Scanner Worker: /scan /market /news /videos /health', { headers: CORS });
@@ -2111,6 +2232,83 @@ async function handleScan(url, finnhubKey, fmpKey) {
       source:    'FMP gainers (alle US aandelen)',
       stocks,
       scannedAt: new Date().toISOString(),
+    });
+
+  } catch(e) {
+    return err(e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /movers — Yesterday's top gainers + losers with context
+// Uses FMP /gainers, /losers + Finnhub company news per stock
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleMovers(finnhubKey, fmpKey) {
+  if (!fmpKey) return err('Geen FMP API key.');
+  try {
+    // Fetch gainers + losers simultaneously
+    const [gainers, losers] = await Promise.all([
+      fmpFetch('/gainers', fmpKey).catch(() =&gt; []),
+      fmpFetch('/losers',  fmpKey).catch(() =&gt; []),
+    ]);
+
+    // Date range for news (yesterday + today)
+    const today = new Date();
+    const from  = new Date(today); from.setDate(from.getDate() - 2);
+    const dateFrom = from.toISOString().slice(0, 10);
+    const dateTo   = today.toISOString().slice(0, 10);
+
+    // Enrich top 10 gainers and top 10 losers with company news
+    const enrichStocks = async (stocks, limit = 10) =&gt; {
+      const top = (stocks || []).slice(0, limit);
+      const newsResults = await Promise.all(
+        top.map(s =&gt;
+          finnhubKey
+            ? fh('/company-news', finnhubKey, { symbol: s.ticker, from: dateFrom, to: dateTo })
+                .then(news =&gt; ({ ticker: s.ticker, news: (news || []).slice(0, 3) }))
+                .catch(() =&gt; ({ ticker: s.ticker, news: [] }))
+            : Promise.resolve({ ticker: s.ticker, news: [] })
+        )
+      );
+      const newsMap = {};
+      for (const { ticker, news } of newsResults) {
+        newsMap[ticker] = news;
+      }
+      return top.map(s =&gt; {
+        const price     = parseFloat(s.price) ?? 0;
+        const changePct = parseFloat(s.changesPercentage) ?? 0;
+        const volume    = parseInt(s.volume) ?? null;
+        const news      = newsMap[s.ticker] ?? [];
+        return {
+          ticker:     s.ticker,
+          company:    s.companyName ?? s.name ?? '',
+          price:      +price.toFixed(2),
+          changePct:  +changePct.toFixed(2),
+          prevClose:  price &gt; 0 &amp;&amp; changePct !== 0
+                        ? +(price / (1 + changePct / 100)).toFixed(2)
+                        : null,
+          volume,
+          hasNews:    news.length &gt; 0,
+          news:       news.map(n =&gt; ({
+            title:   n.headline,
+            link:    n.url,
+            source:  n.source ?? 'Finnhub',
+            pubDate: n.datetime ? new Date(n.datetime * 1000).toISOString() : null,
+          })),
+        };
+      });
+    };
+
+    const [enrichedGainers, enrichedLosers] = await Promise.all([
+      enrichStocks(gainers, 10),
+      enrichStocks(losers,  10),
+    ]);
+
+    return ok({
+      ok:      true,
+      gainers: enrichedGainers,
+      losers:  enrichedLosers,
+      ts:      new Date().toISOString(),
     });
 
   } catch(e) {
@@ -2521,6 +2719,7 @@ $apiKey.addEventListener('input', function() {
 $fmpKey.addEventListener('input', function() {
   localStorage.setItem('gap_fmp_key', this.value.trim());
   updateDot('keyDot', !!this.value.trim());
+  if (this.value.trim() && base()) loadMovers();
 });
 
 function updateDot(id, set) {
@@ -2736,6 +2935,107 @@ function updateStats(iso) {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function loadSidebar() { if(!base()||!apiKey()) return; loadMarket(); loadNews(); }
+
+// Also load movers when FMP key is available
+function loadAll() {
+  if (!base()) return;
+  if (apiKey()) { loadMarket(); loadNews(); }
+  if (fmpKey()) loadMovers();
+}
+
+// ── Yesterday's Movers ───────────────────────────────────────────────────────
+let moversData = { gainers: [], losers: [] };
+let moversMode = 'gain';
+
+async function loadMovers() {
+  if (!base() || !fmpKey()) return;
+  document.getElementById('moversContainer').innerHTML =
+    '<div class="state-msg" style="padding:20px"><p><span class="spinner"></span>Movers laden...</p></div>';
+  try {
+    const d = await call('/movers');
+    moversData = { gainers: d.gainers || [], losers: d.losers || [] };
+    renderMovers();
+  } catch(e) {
+    document.getElementById('moversContainer').innerHTML =
+      `<div class="state-msg" style="padding:20px"><p style="color:var(--red)">Fout: ${e.message}</p></div>`;
+  }
+}
+
+function switchMovers(mode) {
+  moversMode = mode;
+  document.getElementById('moversTabGain').className = 'movers-tab' + (mode==='gain'?' active-gain':'');
+  document.getElementById('moversTabLoss').className = 'movers-tab' + (mode==='loss'?' active-loss':'');
+  renderMovers();
+}
+
+function renderMovers() {
+  const stocks = moversMode === 'gain' ? moversData.gainers : moversData.losers;
+  if (!stocks.length) {
+    document.getElementById('moversContainer').innerHTML =
+      '<div class="state-msg" style="padding:20px"><p>Geen data beschikbaar.</p></div>';
+    return;
+  }
+  const isGain  = moversMode === 'gain';
+  const fmtTime = iso => { try { return new Date(iso).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } };
+  const fmtPct  = v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+
+  const rows = stocks.map((s, i) => {
+    const pctClass = isGain ? 'mover-pct-up' : 'mover-pct-down';
+    const newsBtn  = s.hasNews
+      ? `<span class="news-pill" onclick="event.stopPropagation();toggleMoverNews('m${i}')">${s.news.length > 1 ? s.news.length+' berichten' : '📰 Nieuws'} ▾</span>`
+      : '<span class="no-cat">—</span>';
+
+    const newsExpand = s.news?.length ? `
+      <tr class="mover-news-row">
+        <td colspan="6">
+          <div class="mover-news-inner" id="mover-news-m${i}">
+            ${s.news.map(n => `
+              <a class="news-expand-item" href="${n.link||'#'}" target="_blank" rel="noopener">
+                <span class="news-expand-source">${(n.source||'').toUpperCase().slice(0,10)}</span>
+                <span class="news-expand-title">${n.title||''}</span>
+                <span class="news-expand-time">${fmtTime(n.pubDate)}</span>
+              </a>`).join('')}
+          </div>
+        </td>
+      </tr>` : '';
+
+    return `
+      <tr onclick="window.open('https://finance.yahoo.com/quote/${s.ticker}','_blank')">
+        <td class="td-ticker">
+          ${s.ticker}
+          <span style="font-family:var(--body);font-size:10px;color:var(--muted);display:block;font-weight:400">${s.company?.slice(0,20)||''}</span>
+        </td>
+        <td class="${pctClass}">${fmtPct(s.changePct)}</td>
+        <td>$${s.price?.toFixed(2)??'—'}</td>
+        <td class="td-muted">$${s.prevClose?.toFixed(2)??'—'}</td>
+        <td class="td-muted">${fmtVol(s.volume)}</td>
+        <td onclick="event.stopPropagation()">${newsBtn}</td>
+      </tr>${newsExpand}`;
+  }).join('');
+
+  document.getElementById('moversContainer').innerHTML = `
+    <table class="movers-table">
+      <thead><tr>
+        <th>Ticker</th>
+        <th>${isGain ? 'Stijging' : 'Daling'}</th>
+        <th>Slotkoers</th>
+        <th>Vorige dag</th>
+        <th>Volume</th>
+        <th>Bedrijfsnieuws</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function toggleMoverNews(id) {
+  const el  = document.getElementById(`mover-news-${id}`);
+  if (!el) return;
+  el.classList.toggle('open');
+  const btn = document.querySelector(`[onclick*="toggleMoverNews('${id}')"]`);
+  if (btn) btn.textContent = el.classList.contains('open')
+    ? btn.textContent.replace('▾','▴')
+    : btn.textContent.replace('▴','▾');
+}
 
 // ── YouTube Videos ────────────────────────────────────────────────────────────
 async function loadVideos() {
@@ -2987,14 +3287,16 @@ function toast(msg, type='') {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-if (base() && apiKey()) loadSidebar();
+if (base() && (apiKey() || fmpKey())) loadAll();
 loadVideos();
 
 // ── Auto-refresh (silent, background) ────────────────────────────────────────
-// News: every 2 minutes — tijdgevoelig, kan altijd vers nieuws zijn
-// Market: every 1 minute — SPY/QQQ/VIX prijzen bewegen snel
+// News:   every 2 minutes
+// Market: every 1 minute
+// Movers: every 5 minutes
 setInterval(() => { if (base() && apiKey()) loadNews(); },   2 * 60 * 1000);
 setInterval(() => { if (base() && apiKey()) loadMarket(); }, 1 * 60 * 1000);
+setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
 </script>
 
 <!-- Schema.org structured data for Google -->
