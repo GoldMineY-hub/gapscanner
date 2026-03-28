@@ -1257,6 +1257,129 @@ h2.section-title {
   .footer-bottom { flex-direction: column; align-items: flex-start; }
 }
 
+
+/* ── HORIZONTAL MARKET BAR ── */
+.market-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 56px;
+  z-index: 90;
+  width: 100%;
+}
+.market-bar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: 48px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.market-bar-inner::-webkit-scrollbar { display: none; }
+
+.mbar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mbar-item:first-child { padding-left: 0; }
+.mbar-item:last-child  { border-right: none; }
+
+.mbar-sym {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.mbar-price {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.mbar-chg {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+.mbar-chg.pos { color: var(--accent); }
+.mbar-chg.neg { color: var(--red); }
+.mbar-chg.neu { color: var(--muted); }
+
+/* VIX sentiment pill */
+.mbar-vix-pill {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.mbar-vix-pill.low  { background: rgba(0,229,176,.12); color: var(--accent); border: 1px solid rgba(0,229,176,.25); }
+.mbar-vix-pill.mid  { background: rgba(245,158,11,.1);  color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
+.mbar-vix-pill.high { background: rgba(244,63,94,.1);   color: var(--red); border: 1px solid rgba(244,63,94,.25); }
+
+/* Market status pill in bar */
+.mbar-status {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+.mbar-status.open    { background: rgba(0,229,176,.12); color: var(--accent); border: 1px solid rgba(0,229,176,.25); }
+.mbar-status.closed  { background: rgba(90,112,144,.1); color: var(--muted);  border: 1px solid var(--border); }
+.mbar-status.pre     { background: rgba(56,189,248,.1); color: var(--accent2); border: 1px solid rgba(56,189,248,.25); }
+
+.mbar-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+/* Strategy tip in bar */
+.mbar-tip {
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1;
+  text-align: right;
+  padding-right: 0;
+  padding-left: 20px;
+  border-right: none;
+}
+.mbar-tip strong { color: var(--text); font-weight: 500; }
+
+/* ── TWO COLUMN LAYOUT ── */
+.scanner-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 32px 0;
+}
+.scanner-col { display: flex; flex-direction: column; gap: 14px; }
+
+/* Mobile/tablet: stack */
+@media(max-width: 1024px) {
+  .scanner-columns { grid-template-columns: 1fr; padding: 12px 16px 0; }
+  .market-bar-inner { padding: 0 16px; }
+}
+
 /* ── Movers section ── */
 .movers-section {
   background: var(--surface);
@@ -1759,6 +1882,45 @@ h2.section-title {
 
 </section>
 
+<!-- Hidden legacy market panel (kept for JS compatibility) -->
+<div id="marketPanel" style="display:none"></div>
+
+<!-- ══ MARKET BAR ══ -->
+<div class="market-bar" id="marketBar">
+  <div class="market-bar-inner" id="marketBarInner">
+    <div class="mbar-item">
+      <span class="mbar-sym">SPY</span>
+      <span class="mbar-price" id="mbar-spy-price">—</span>
+      <span class="mbar-chg neu" id="mbar-spy-chg">—</span>
+    </div>
+    <div class="mbar-item">
+      <span class="mbar-sym">QQQ</span>
+      <span class="mbar-price" id="mbar-qqq-price">—</span>
+      <span class="mbar-chg neu" id="mbar-qqq-chg">—</span>
+    </div>
+    <div class="mbar-item">
+      <span class="mbar-sym">VIX</span>
+      <span class="mbar-price" id="mbar-vix-price">—</span>
+      <span class="mbar-vix-pill low" id="mbar-vix-pill">—</span>
+    </div>
+    <div class="mbar-item">
+      <span class="mbar-label">Markt</span>
+      <span class="mbar-status closed" id="mbar-mkt-status">—</span>
+    </div>
+    <div class="mbar-item">
+      <span class="mbar-label">Beste scan tijd</span>
+      <span class="mbar-price" style="font-size:11px;color:var(--accent2)">13:00 – 15:30 CET</span>
+    </div>
+    <div class="mbar-item">
+      <span class="mbar-label">Strategie</span>
+      <span class="mbar-price" style="font-size:10px;color:var(--muted)" id="mbar-strategy-tip">Gap up + nieuws + volume</span>
+    </div>
+    <div class="mbar-item" style="border-right:none;margin-left:auto">
+      <button onclick="loadMarket()" style="font-family:var(--mono);font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 6px">↻</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ SCANNER ══ -->
 <section class="scanner-app" id="scanner">
 
@@ -1853,41 +2015,46 @@ h2.section-title {
         <span class="rcount" id="rcount">—</span>
       </div>
       <div class="tbl-scroll">
-        <div id="tableContainer">
-          <div class="state-msg">
-            <div class="icon">📡</div>
-            <p>Voer je Worker URL en API key in en druk op Scannen.</p>
-            <small>Data via Finnhub API. Real-time US aandelen, werkt vanuit heel Europa.</small>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TWO COLUMN LAYOUT: Scanner left, Movers right -->
+  <div class="scanner-columns">
+
+    <!-- Left column: scanner results only -->
+    <div class="scanner-col" id="scannerCol">
+      <div class="scanner-results-panel" id="tableContainer" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <div class="state-msg">
+          <div class="icon">📡</div>
+          <p>Voer je Worker URL en API key in en druk op Scannen.</p>
+          <small>Data via FMP + Finnhub API. Real-time US aandelen.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: movers -->
+    <div class="scanner-col">
+      <div class="movers-section" style="margin-bottom:0">
+        <div class="movers-head">
+          <h2>Gisteren's Movers</h2>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="movers-tabs">
+              <button class="movers-tab active-gain" id="moversTabGain" onclick="switchMovers('gain')">📈 Stijgers</button>
+              <button class="movers-tab" id="moversTabLoss" onclick="switchMovers('loss')">📉 Dalers</button>
+            </div>
+            <button class="btn-sm" onclick="loadMovers()">↻</button>
+          </div>
+        </div>
+        <div class="movers-body" id="moversContainer">
+          <div class="state-msg" style="padding:24px">
+            <p>Voer je FMP key in om gisteren's movers te laden.</p>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="sidebar">
-      <div class="panel">
-        <div class="panel-head"><h3>Markt</h3><button onclick="loadMarket()">↻</button></div>
-        <div class="panel-body" id="marketPanel"><div class="panel-loading">Voer API key in</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Yesterday's Movers -->
-  <div class="movers-section">
-    <div class="movers-head">
-      <h2>Gisteren's Movers</h2>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="movers-tabs">
-          <button class="movers-tab active-gain" id="moversTabGain" onclick="switchMovers('gain')">📈 Stijgers</button>
-          <button class="movers-tab" id="moversTabLoss" onclick="switchMovers('loss')">📉 Dalers</button>
-        </div>
-        <button class="btn-sm" onclick="loadMovers()">↻</button>
-      </div>
-    </div>
-    <div class="movers-body" id="moversContainer">
-      <div class="state-msg" style="padding:24px">
-        <p>Voer je FMP key in om gisteren's movers te laden.</p>
-      </div>
-    </div>
   </div>
 
   <!-- News feed -->
@@ -2505,7 +2672,9 @@ async function handleMarket(key) {
     const [spy, qqq, vix] = await Promise.all([
       fh('/quote', key, { symbol: 'SPY' }),
       fh('/quote', key, { symbol: 'QQQ' }),
-      fh('/quote', key, { symbol: 'VIX' }).catch(() =&gt; null),
+      fh('/quote', key, { symbol: 'VIX' }).catch(() =&gt;
+        fh('/quote', key, { symbol: '^VIX' }).catch(() =&gt; null)
+      ),
     ]);
     const fmt = (q, sym) =&gt; q ? {
       symbol: sym, price: q.c,
@@ -2612,7 +2781,7 @@ async function fetchSECFilings(ticker) {
   try {
     // SEC EDGAR full-text search RSS for this ticker in 8-K filings
     const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22&#36;{ticker}%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(3)}&amp;enddt=&#36;{getTodayDate()}&amp;forms=8-K&#96;;
-    const res = await fetch(url, { headers: { 'User-Agent': 'GapScanner <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="20434f4e5441435460474f4c444d494e45590e434f4d">[email&#160;protected]</a>', 'Accept': 'application/json' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'GapScanner contact@goldminey.com', 'Accept': 'application/json' } });
     if (!res.ok) return [];
     const data = await res.json();
     const hits  = data.hits?.hits ?? [];
@@ -3475,36 +3644,74 @@ async function loadVideos() {
 }
 
 async function loadMarket() {
-  document.getElementById('marketPanel').innerHTML='<div class="panel-loading"><span class="spinner"></span>Laden...</div>';
   try {
     const d = await call('/market');
-    const row=(sym,q)=>{
-      if(!q||q.error) return `<div class="mkt-row"><span class="mkt-sym">${sym}</span><span class="td-muted">—</span></div>`;
-      const pos=(q.changePct??0)>=0;
-      return `<div class="mkt-row">
-        <span class="mkt-sym">${sym}</span>
-        <div class="mkt-right">
-          <span class="mkt-price">${q.price!=null?'$'+q.price.toFixed(2):'—'}</span>
-          <span class="mkt-chg ${pos?'pos':'neg'}">${q.changePct!=null?(pos?'+':'')+q.changePct.toFixed(2)+'%':'—'}</span>
-        </div>
-      </div>`;
+
+    // ── Populate horizontal market bar ────────────────────────────────────────
+    const setBar = (id, val, cls) => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = val; if (cls) el.className = el.className.replace(/pos|neg|neu|low|mid|high/g,'').trim() + ' ' + cls; }
     };
-    const v=d.vix?.price;
-    const vc=v==null?'':v<15?'low':v<25?'mid':'high';
-    const vl=v==null?'—':v<15?'Lage volatiliteit':v<25?'Gemiddeld':'Hoog volatiliteit, wees voorzichtig';
-    document.getElementById('marketPanel').innerHTML=`
-      ${row('SPY',d.spy)}
-      <div class="mkt-sep"></div>
-      ${row('QQQ',d.qqq)}
-      <div class="vix-block">
-        <div>
-          <div class="vix-label">VIX Angst Index</div>
-          <div class="vix-desc">${vl}</div>
-        </div>
-        <span class="vix-val ${vc}">${v!=null?v.toFixed(2):'—'}</span>
-      </div>`;
+
+    const spy = d.spy, qqq = d.qqq, vix = d.vix;
+
+    if (spy && !spy.error) {
+      setBar('mbar-spy-price', spy.price != null ? '$' + spy.price.toFixed(2) : '—');
+      const spyPos = (spy.changePct ?? 0) >= 0;
+      setBar('mbar-spy-chg', spy.changePct != null ? (spyPos?'+':'') + spy.changePct.toFixed(2) + '%' : '—', spyPos ? 'pos' : 'neg');
+    }
+    if (qqq && !qqq.error) {
+      setBar('mbar-qqq-price', qqq.price != null ? '$' + qqq.price.toFixed(2) : '—');
+      const qqqPos = (qqq.changePct ?? 0) >= 0;
+      setBar('mbar-qqq-chg', qqq.changePct != null ? (qqqPos?'+':'') + qqq.changePct.toFixed(2) + '%' : '—', qqqPos ? 'pos' : 'neg');
+    }
+
+    // VIX — fix: use price directly, map to volatility label
+    const vixVal = vix?.price;
+    const vixNum  = parseFloat(vixVal) || 0;
+    const vixClass = vixNum < 15 ? 'low' : vixNum < 25 ? 'mid' : 'high';
+    const vixLabel = vixNum < 15 ? 'Rustig' : vixNum < 25 ? 'Gemiddeld' : 'Hoog risico';
+    setBar('mbar-vix-price', vixNum > 0 ? vixNum.toFixed(1) : '—');
+    setBar('mbar-vix-pill', vixLabel, vixClass);
+
+    // Market status based on ET time
+    const now   = new Date();
+    const etStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const et    = new Date(etStr);
+    const h = et.getHours(), m = et.getMinutes(), day = et.getDay();
+    const mins  = h * 60 + m;
+    const isWeekend = day === 0 || day === 6;
+    let mktStatus = 'closed', mktLabel = 'Gesloten';
+    if (!isWeekend) {
+      if (mins >= 570 && mins < 630)  { mktStatus = 'pre';    mktLabel = 'Pre-market'; }
+      else if (mins >= 630 && mins < 960) { mktStatus = 'open'; mktLabel = 'Open'; }
+      else if (mins >= 960 && mins < 1020) { mktStatus = 'pre'; mktLabel = 'After-hours'; }
+    }
+    setBar('mbar-mkt-status', mktLabel, mktStatus);
+
+    // Strategy tip based on market conditions
+    const spyChg = spy?.changePct ?? 0;
+    let tip = 'Gap up + nieuws + volume';
+    if (vixNum > 25)           tip = 'Hoge VIX: kleinere posities';
+    else if (spyChg < -1)      tip = 'Rode markt: gappers faden sneller';
+    else if (spyChg > 0.5)     tip = 'Groene markt: momentum loopt door';
+    else if (mktStatus === 'pre') tip = 'Pre-market: scan nu voor open';
+    setBar('mbar-strategy-tip', tip);
+
+    // ── Also keep the old market panel updated (hidden but still in DOM) ──────
+    const oldPanel = document.getElementById('marketPanel');
+    if (oldPanel) {
+      const row=(sym,q)=>{
+        if(!q||q.error) return `<div class="mkt-row"><span class="mkt-sym">${sym}</span><span class="td-muted">—</span></div>`;
+        const pos=(q.changePct??0)>=0;
+        return `<div class="mkt-row"><span class="mkt-sym">${sym}</span><div class="mkt-right"><span class="mkt-price">${q.price!=null?'$'+q.price.toFixed(2):'—'}</span><span class="mkt-chg ${pos?'pos':'neg'}">${q.changePct!=null?(pos?'+':'')+q.changePct.toFixed(2)+'%':'—'}</span></div></div>`;
+      };
+      oldPanel.innerHTML = row('SPY',spy) + '<div class="mkt-sep"></div>' + row('QQQ',qqq);
+    }
+
   } catch(e) {
-    document.getElementById('marketPanel').innerHTML=`<div class="panel-loading" style="color:var(--red)">Fout: ${e.message}</div>`;
+    const bar = document.getElementById('mbar-spy-price');
+    if (bar) bar.textContent = 'Fout';
   }
 }
 
