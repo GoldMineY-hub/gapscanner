@@ -737,7 +737,94 @@ td { padding: 11px 14px; font-family: var(--mono); font-size: 12px; white-space:
 }
 @keyframes spin { to{ transform: rotate(360deg); } }
 
-/* ── SIDEBAR ── */
+/* ── Catalysts section ── */
+.catalysts-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.catalysts-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface2); flex-wrap: wrap; gap: 8px;
+}
+.catalysts-head h2 {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+}
+.cat-tabs { display: flex; gap: 4px; }
+.cat-tab-btn {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .5px; padding: 4px 12px; border-radius: 4px;
+  border: 1px solid var(--border); color: var(--muted);
+  background: none; cursor: pointer; transition: all .15s;
+}
+.cat-tab-btn:hover { color: var(--text); }
+.cat-tab-btn.active-earn { background: rgba(0,229,176,.1); color: var(--accent); border-color: rgba(0,229,176,.25); }
+.cat-tab-btn.active-fda  { background: rgba(167,139,250,.1); color: #a78bfa; border-color: rgba(167,139,250,.25); }
+.cat-tab-btn.active-sect { background: rgba(56,189,248,.1); color: var(--accent2); border-color: rgba(56,189,248,.25); }
+.cat-body { overflow-x: auto; }
+.cat-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+.cat-table thead th {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+  padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--border);
+  background: var(--surface2); white-space: nowrap;
+}
+.cat-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+.cat-table tbody tr:hover { background: var(--surface2); }
+.cat-table tbody tr:last-child { border-bottom: none; }
+.cat-table td { padding: 8px 14px; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.timing-bmo { background: rgba(56,189,248,.1); color: var(--accent2); border: 1px solid rgba(56,189,248,.2); padding: 2px 7px; border-radius: 3px; font-size: 9px; font-weight: 600; }
+.timing-amc { background: rgba(167,139,250,.1); color: #a78bfa; border: 1px solid rgba(167,139,250,.2); padding: 2px 7px; border-radius: 3px; font-size: 9px; font-weight: 600; }
+.sect-bar-wrap { width: 120px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+.sect-bar-fill { height: 100%; border-radius: 3px; }
+.cat-loading { padding: 24px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* Updated news section legend */
+.news-legend-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+/* ── Scanner context banner ── */
+.scanner-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+  transition: all .3s;
+}
+.scanner-context.open    { background: rgba(0,229,176,.06);  border-color: rgba(0,229,176,.2); }
+.scanner-context.pre     { background: rgba(56,189,248,.06); border-color: rgba(56,189,248,.2); }
+.scanner-context.closed  { background: rgba(90,112,144,.06); border-color: var(--border); }
+.scanner-context.weekend { background: rgba(90,112,144,.06); border-color: var(--border); }
+.scanner-context-icon { font-size: 20px; flex-shrink: 0; }
+.scanner-context-text { flex: 1; color: #a8bfd4; }
+.scanner-context-text strong { font-weight: 500; }
+.scanner-context-text .ctx-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.scanner-context.open   .ctx-title { color: var(--accent); }
+.scanner-context.pre    .ctx-title { color: var(--accent2); }
+.scanner-context.closed .ctx-title,
+.scanner-context.weekend .ctx-title { color: var(--muted); }
+.scanner-context-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .sidebar { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 70px; }
 
 .panel {
@@ -1899,7 +1986,6 @@ h2.section-title {
       </svg>
     </div>
   </div>
-  </div><!-- end scanner-news -->
 
 </section>
 
@@ -2033,6 +2119,18 @@ h2.section-title {
 
   </div><!-- end scanner-top -->
 
+  <!-- Scanner context banner — updates automatically based on ET time -->
+  <div class="scanner-top" style="padding-top:0">
+    <div class="scanner-context closed" id="scannerContext">
+      <div class="scanner-context-icon" id="ctxIcon">⏳</div>
+      <div class="scanner-context-text">
+        <div class="ctx-title" id="ctxTitle">Laden...</div>
+        <div id="ctxMsg">Marktdata wordt opgehaald.</div>
+      </div>
+      <div class="scanner-context-time" id="ctxTime"></div>
+    </div>
+  </div>
+
   <!-- TWO COLUMN LAYOUT: Scanner left, Movers right -->
   <div class="scanner-columns">
 
@@ -2074,16 +2172,41 @@ h2.section-title {
 
   </div>
 
+  <!-- Catalysts vandaag: full width below columns -->
+  <div class="scanner-columns" style="padding-top:0">
+    <div class="scanner-col" style="grid-column:1/-1">
+      <div class="catalysts-section">
+        <div class="catalysts-head">
+          <h2>Catalysts vandaag</h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="cat-tabs">
+              <button class="cat-tab-btn active-earn" id="catTabEarn" onclick="switchCat('earn')">📅 Earnings</button>
+              <button class="cat-tab-btn" id="catTabFda"  onclick="switchCat('fda')">💊 FDA</button>
+              <button class="cat-tab-btn" id="catTabSect" onclick="switchCat('sect')">📊 Sectoren</button>
+            </div>
+            <button class="btn-sm" onclick="loadCatalysts()">↻</button>
+          </div>
+        </div>
+        <div class="cat-body" id="catalystsContainer">
+          <div class="cat-loading">Voer je FMP key in om catalysts te laden.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- News feed: same padding as columns -->
   <div class="scanner-news">
   <div class="news-section">
     <div class="news-section-head">
       <h2>Live Nieuws Feed</h2>
       <div class="news-source-legend">
-        <span class="legend-item"><span class="legend-dot" style="background:#22d3ee"></span>Benzinga</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span>GlobeNewswire</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>PR Newswire</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#5a7090"></span>Finnhub</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#22d3ee"></span>Benzinga</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#60a5fa"></span>GlobeNewswire</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#f59e0b"></span>PR Newswire</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#a78bfa"></span>Business Wire</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#34d399"></span>SEC EDGAR</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#f87171"></span>Google News</span>
+        <span class="legend-item"><span class="news-legend-dot" style="background:#5a7090"></span>Finnhub</span>
         <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:4px">↻ elke 2 min</span>
         <button class="btn-sm" onclick="loadNews()" style="align-self:center">↻ Nu vernieuwen</button>
       </div>
@@ -2094,6 +2217,7 @@ h2.section-title {
       </div>
     </div>
   </div>
+  </div><!-- end scanner-news -->
 
 </section>
 
@@ -2256,13 +2380,16 @@ export default {
     const key = url.searchParams.get('key') ?? '';
     const fmp = url.searchParams.get('fmp') ?? '';
 
-    if (url.pathname === '/health') return ok({ ok: true, ts: new Date().toISOString() });
-    if (url.pathname === '/scan')   return handleScan(url, key, fmp);
-    if (url.pathname === '/market') return handleMarket(key);
-    if (url.pathname === '/news')   return handleNews(key);
-    if (url.pathname === '/movers') return handleMovers(key, fmp);
-    if (url.pathname === '/videos') return handleVideos();
-    if (url.pathname === '/debug')  return handleDebug(fmp);
+    if (url.pathname === '/health')   return ok({ ok: true, ts: new Date().toISOString() });
+    if (url.pathname === '/scan')     return handleScan(url, key, fmp);
+    if (url.pathname === '/market')   return handleMarket(key);
+    if (url.pathname === '/news')     return handleNews(key);
+    if (url.pathname === '/movers')   return handleMovers(key, fmp);
+    if (url.pathname === '/videos')   return handleVideos();
+    if (url.pathname === '/debug')    return handleDebug(fmp);
+    if (url.pathname === '/earnings') return handleEarnings();
+    if (url.pathname === '/sectors')  return handleSectors(fmp);
+    if (url.pathname === '/fda')      return handleFDA();
 
     return new Response('Gap Scanner Worker: /scan /market /news /videos /health', { headers: CORS });
   }
@@ -2409,6 +2536,7 @@ async function handleScan(url, finnhubKey, fmpKey) {
         finnhubNews,
         yahooNews,
         secFilings,
+        googleNews,
       ] = await Promise.all([
         // Finnhub company news
         finnhubKey
@@ -2419,6 +2547,8 @@ async function handleScan(url, finnhubKey, fmpKey) {
         fetchYahooRSS(ticker),
         // SEC EDGAR 8-K filings for this ticker
         fetchSECFilings(ticker),
+        // Google News RSS — free, no key, all sources
+        fetchGoogleNews(ticker, company),
       ]);
 
       // Normalise all sources into one format
@@ -2444,6 +2574,12 @@ async function handleScan(url, finnhubKey, fmpKey) {
 
       // SEC EDGAR 8-K filings — always real, never filtered
       for (const n of (secFilings || [])) {
+        allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
+      }
+
+      // Google News — free, no key, catches everything else
+      for (const n of (googleNews || [])) {
+        if (!isRealNews(n.title, n.source)) continue;
         allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
       }
 
@@ -2597,13 +2733,14 @@ async function handleMovers(finnhubKey, fmpKey) {
 
       const newsResults = await Promise.all(
         top.map(async s =&gt; {
-          const [finnhubNews, yahooNews, secFilings] = await Promise.all([
+          const [finnhubNews, yahooNews, secFilings, googleNews] = await Promise.all([
             finnhubKey
               ? fh('/company-news', finnhubKey, { symbol: s.ticker, from: dateFrom, to: dateTo })
                   .catch(() =&gt; [])
               : Promise.resolve([]),
             fetchYahooRSS(s.ticker),
             fetchSECFilings(s.ticker),
+            fetchGoogleNews(s.ticker, s.company),
           ]);
 
           const allNews = [];
@@ -2631,6 +2768,13 @@ async function handleMovers(finnhubKey, fmpKey) {
           }
           // SEC
           for (const n of (secFilings || [])) {
+            allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
+          }
+          // Google News
+          for (const n of (googleNews || [])) {
+            const key = (n.title || '').slice(0, 60).toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
             allNews.push({ ...n, datetime: n.pubDate ? new Date(n.pubDate).getTime()/1000 : 0 });
           }
 
@@ -2743,6 +2887,110 @@ async function handleNews(key) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// /earnings — Earnings news via Benzinga RSS + Google News (free, no key needed)
+// Filters for earnings-related headlines from today
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleEarnings() {
+  try {
+    const EARNINGS_KEYWORDS = [
+      'earnings','quarterly results','q1','q2','q3','q4','revenue','eps',
+      'beats','misses','guidance','profit','loss','fiscal','annual results',
+      'reports results','financial results','fourth quarter','third quarter',
+      'second quarter','first quarter','full year',
+    ];
+
+    const isEarningsNews = (title) =&gt; {
+      const t = (title || '').toLowerCase();
+      return EARNINGS_KEYWORDS.some(k =&gt; t.includes(k));
+    };
+
+    // Fetch earnings-related news from multiple free RSS sources simultaneously
+    const [benzinga, googleEarnings, globenews] = await Promise.all([
+      // Benzinga RSS — filtered for earnings
+      fetchRSS('https://feeds.benzinga.com/benzinga', 'Benzinga'),
+      // Google News RSS for "earnings results today"
+      (async () =&gt; {
+        try {
+          const url = &#96;https://news.google.com/rss/search?q=earnings+results+today+stock&amp;hl=en-US&amp;gl=US&amp;ceid=US:en&#96;;
+          const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+          if (!res.ok) return [];
+          return parseRSS(await res.text(), 'Google News');
+        } catch { return []; }
+      })(),
+      // GlobeNewswire — often has official earnings press releases
+      fetchRSS('https://www.globenewswire.com/RssFeed/industry/9600', 'GlobeNewswire'),
+    ]);
+
+    // Merge, filter for earnings content, deduplicate
+    const seen  = new Set();
+    const items = [];
+    for (const n of [...benzinga, ...googleEarnings, ...globenews]) {
+      if (!isEarningsNews(n.title)) continue;
+      const key = (n.title || '').slice(0, 60).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push({
+        title:   n.title,
+        link:    n.link,
+        source:  n.source,
+        pubDate: n.pubDate,
+        tickers: n.tickers || [],
+      });
+    }
+
+    // Sort by recency
+    items.sort((a, b) =&gt; new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
+
+    return ok({ ok: true, count: items.length, items: items.slice(0, 20), ts: new Date().toISOString() });
+  } catch(e) { return err(e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /sectors — Sector performance snapshot via FMP stable API
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleSectors(fmpKey) {
+  if (!fmpKey) return err('Geen FMP API key.');
+  try {
+    const data = await fmpFetch('/sector-performance', fmpKey, true);
+    const items = (Array.isArray(data) ? data : [])
+      .map(s =&gt; ({
+        sector:     s.sector ?? s.name ?? '',
+        changePct:  parseFloat(String(s.changesPercentage ?? s.change ?? 0).replace('%','')) || 0,
+      }))
+      .filter(s =&gt; s.sector)
+      .sort((a, b) =&gt; b.changePct - a.changePct);
+    return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
+  } catch(e) { return err(e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /fda — FDA action dates via SEC EDGAR RSS (PDUFA dates in 8-K filings)
+// Free, no API key needed
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleFDA() {
+  try {
+    // SEC EDGAR search for recent FDA-related 8-K filings
+    const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22PDUFA%22+OR+%22FDA+approval%22+OR+%22NDA%22+OR+%22BLA%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(7)}&amp;enddt=&#36;{getDateDaysAgo(-7)}&amp;forms=8-K&amp;hits.hits.total.value=true&#96;;
+    const res  = await fetch(url, {
+      headers: { 'User-Agent': 'GapScanner contact@goldminey.com', 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error(&#96;SEC EDGAR fout &#36;{res.status}&#96;);
+    const data = await res.json();
+    const hits  = data.hits?.hits ?? [];
+    const items = hits.slice(0, 10).map(h =&gt; ({
+      company: h._source?.entity_name ?? '',
+      symbol:  h._source?.period_of_report ?? '',
+      date:    h._source?.file_date ?? '',
+      title:   h._source?.display_date_filed
+               ? &#96;8-K FDA Filing — &#36;{h._source.entity_name}&#96;
+               : 'SEC 8-K FDA Filing',
+      link:    &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{encodeURIComponent(h._source?.entity_name ?? '')}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=5&#96;,
+    }));
+    return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
+  } catch(e) { return err(e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // /videos — Ross Cameron YouTube RSS
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleVideos() {
@@ -2826,6 +3074,46 @@ function getDateDaysAgo(days) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Google News RSS per ticker — no API key, always free
+// Returns all news from Google News about a specific stock
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchGoogleNews(ticker, companyName) {
+  try {
+    // Search for ticker AND company name for best results
+    const query   = companyName
+      ? &#96;&#36;{ticker} stock OR "&#36;{companyName.split(' ').slice(0,3).join(' ')}"&#96;
+      : &#96;&#36;{ticker} stock&#96;;
+    const encoded = encodeURIComponent(query);
+    const url     = &#96;https://news.google.com/rss/search?q=&#36;{encoded}&amp;hl=en-US&amp;gl=US&amp;ceid=US:en&#96;;
+    const res     = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GapScanner/1.0)' }
+    });
+    if (!res.ok) return [];
+    const xml   = await res.text();
+    const strip = s =&gt; s
+      .replace(/&lt;!\[CDATA\[([\s\S]*?)\]\]&gt;/g, '$1')
+      .replace(/&lt;[^&gt;]+&gt;/g, '')
+      .replace(/&amp;amp;/g,'&amp;').replace(/&amp;lt;/g,'&lt;').replace(/&amp;gt;/g,'&gt;')
+      .replace(/&amp;quot;/g,'"').replace(/&amp;#39;/g,"'").trim();
+
+    const items  = [];
+    const itemRe = /&lt;item&gt;([\s\S]*?)&lt;\/item&gt;/gi;
+    let m;
+    while ((m = itemRe.exec(xml)) !== null) {
+      const c       = m[1];
+      const title   = strip(c.match(/&lt;title&gt;([\s\S]*?)&lt;\/title&gt;/i)?.[1] ?? '');
+      const link    = strip(c.match(/&lt;link&gt;([\s\S]*?)&lt;\/link&gt;/i)?.[1] ?? '');
+      const pubDate = strip(c.match(/&lt;pubDate&gt;([\s\S]*?)&lt;\/pubDate&gt;/i)?.[1] ?? '');
+      // Extract source name from &lt;source&gt; tag
+      const source  = strip(c.match(/&lt;source[^&gt;]*&gt;([\s\S]*?)&lt;\/source&gt;/i)?.[1] ?? 'Google News');
+      if (!title || title.length &lt; 5) continue;
+      items.push({ title, link, source, pubDate, tickers: [ticker] });
+    }
+    return items.slice(0, 5);
+  } catch { return []; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // RSS feeds
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchAllRSS() {
@@ -2892,6 +3180,11 @@ function newsScore(n) {
   if (src.includes('accesswire'))                              s += 25;
   if (src.includes('yahoo'))                                   s += 20;
   if (src.includes('benzinga'))                                s += 15;
+  if (src.includes('reuters'))                                 s += 20;
+  if (src.includes('bloomberg'))                               s += 20;
+  if (src.includes('marketwatch'))                             s += 12;
+  if (src.includes('cnbc'))                                    s += 12;
+  if (src === 'google news' || src.includes('google'))         s += 8;
   const catalysts = ['fda','approval','approved','clearance','clears',
     'earnings','revenue','beat','guidance','merger','acquisition','acquires',
     'contract','award','partnership','deal','ipo','offering','uplisting',
@@ -3248,7 +3541,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -3277,12 +3570,232 @@ $apiKey.addEventListener('input', function() {
 $fmpKey.addEventListener('input', function() {
   localStorage.setItem('gap_fmp_key', this.value.trim());
   updateDot('keyDot', !!this.value.trim());
-  if (this.value.trim() && base()) loadMovers();
+  if (this.value.trim() && base()) { loadMovers(); loadCatalysts(); }
 });
 
 function updateDot(id, set) {
   const el = document.getElementById(id);
   if (el) el.className = 'status-dot' + (set ? ' set' : '');
+}
+
+// ── Scanner context banner — tells user what data they're seeing ──────────────
+function updateScannerContext() {
+  const ctx   = document.getElementById('scannerContext');
+  const icon  = document.getElementById('ctxIcon');
+  const title = document.getElementById('ctxTitle');
+  const msg   = document.getElementById('ctxMsg');
+  const time  = document.getElementById('ctxTime');
+  if (!ctx) return;
+
+  const now   = new Date();
+  const etStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const et    = new Date(etStr);
+  const h     = et.getHours();
+  const m     = et.getMinutes();
+  const day   = et.getDay();
+  const mins  = h * 60 + m;
+  const isWeekend = day === 0 || day === 6;
+
+  // Current ET time string
+  const etTime = et.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
+  const cetTime = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+  if (isWeekend) {
+    ctx.className   = 'scanner-context weekend';
+    icon.textContent = '📅';
+    title.textContent = 'Weekend — Markt gesloten';
+    msg.innerHTML   = 'Je ziet de <strong>eindstand van vrijdag</strong>. Maandag vanaf <strong>13:00 CET</strong> begint de pre-market activiteit weer. Gebruik deze data om je watchlist voor maandag voor te bereiden.';
+    time.textContent = cetTime + ' CET';
+  } else if (mins < 570) {
+    // Before 09:30 ET = before 15:30 CET, early morning
+    const openIn = 570 - mins;
+    const hLeft  = Math.floor(openIn / 60);
+    const mLeft  = openIn % 60;
+    ctx.className   = 'scanner-context closed';
+    icon.textContent = '🌙';
+    title.textContent = 'Nacht — Markt nog gesloten';
+    msg.innerHTML   = `Je ziet de <strong>eindstand van gisteren</strong>. De pre-market begint over <strong>${hLeft > 0 ? hLeft + 'u ' : ''}${mLeft}min</strong> om 10:00 CET. Pre-market nieuws en volume verschijnen dan als eerste.`;
+    time.textContent = cetTime + ' CET';
+  } else if (mins >= 570 && mins < 630) {
+    // 09:30-10:30 ET = pre-market (10:30-16:30 NL, but US pre-market starts 04:00 ET)
+    // Actually pre-market for NL traders: 10:00-15:30 CET
+    ctx.className   = 'scanner-context pre';
+    icon.textContent = '📋';
+    title.textContent = 'Pre-market — Voorbereiding';
+    msg.innerHTML   = 'Je ziet de <strong>top gainers van gisteren</strong> als watchlist kandidaten voor vandaag. Zoek naar aandelen met een nieuws catalyst. De scanner toont <strong>live data vanaf 15:30 CET</strong> als de markt opent.';
+    time.textContent = cetTime + ' CET';
+  } else if (mins >= 630 && mins < 960) {
+    // 10:30-16:00 ET = market open = 16:30-22:00 CET
+    ctx.className   = 'scanner-context open';
+    icon.textContent = '🟢';
+    title.textContent = 'Markt open — Live data!';
+    msg.innerHTML   = 'Dit zijn de <strong>sterkste gainers van vandaag op dit moment</strong>. Scan elke <strong>5-10 minuten</strong> voor de laatste updates. Het beste window is de eerste 30-60 minuten na opening.';
+    time.textContent = etTime + ' ET · ' + cetTime + ' CET';
+  } else if (mins >= 960 && mins < 1020) {
+    // 16:00-17:00 ET = after-hours
+    ctx.className   = 'scanner-context pre';
+    icon.textContent = '🔔';
+    title.textContent = 'After-hours';
+    msg.innerHTML   = 'Markt net gesloten. Je ziet de <strong>eindstand van vandaag</strong>. After-hours bewegingen kunnen morgen gappers worden. Check het nieuws per aandeel voor catalysts.';
+    time.textContent = cetTime + ' CET';
+  } else {
+    // After 17:00 ET = evening
+    const openTomorrow = 570 - mins + 1440;
+    ctx.className   = 'scanner-context closed';
+    icon.textContent = '🌙';
+    title.textContent = 'Na beurstijd — Eindstand van vandaag';
+    msg.innerHTML   = 'Je ziet de <strong>eindstand van vandaag</strong>. Kom morgen terug vanaf <strong>13:00 CET</strong> voor pre-market activiteit. Gebruik deze data om je watchlist voor morgen voor te bereiden.';
+    time.textContent = cetTime + ' CET';
+  }
+}
+
+// Update context on load and every minute
+updateScannerContext();
+setInterval(updateScannerContext, 60 * 1000);
+
+// ── Catalysts section ─────────────────────────────────────────────────────────
+let catMode = 'earn';
+let catData = { earn: null, fda: null, sect: null };
+
+async function loadCatalysts() {
+  if (!base()) return;
+  document.getElementById('catalystsContainer').innerHTML =
+    '<div class="cat-loading"><span class="spinner"></span>Catalysts laden...</div>';
+  catData = { earn: null, fda: null, sect: null };
+  await loadCatTab(catMode);
+}
+
+async function loadCatTab(mode) {
+  if (!base()) return;
+  // Earnings and FDA work without FMP key (free sources only)
+  // Sectors needs FMP key
+  if (mode === 'sect' && !fmpKey()) {
+    document.getElementById('catalystsContainer').innerHTML =
+      '<div class="cat-loading">Voer je FMP key in voor sectordata.</div>';
+    return;
+  }
+  if (catData[mode]) { renderCat(); return; }
+
+  document.getElementById('catalystsContainer').innerHTML =
+    '<div class="cat-loading"><span class="spinner"></span>Laden...</div>';
+  try {
+    const endpoint = mode === 'earn' ? '/earnings' : mode === 'fda' ? '/fda' : '/sectors';
+    const d = await call(endpoint);
+    catData[mode] = d;
+    renderCat();
+  } catch(e) {
+    document.getElementById('catalystsContainer').innerHTML =
+      `<div class="cat-loading" style="color:var(--red)">Fout: ${e.message}</div>`;
+  }
+}
+
+function switchCat(mode) {
+  catMode = mode;
+  document.getElementById('catTabEarn').className = 'cat-tab-btn' + (mode==='earn' ? ' active-earn' : '');
+  document.getElementById('catTabFda').className  = 'cat-tab-btn' + (mode==='fda'  ? ' active-fda'  : '');
+  document.getElementById('catTabSect').className = 'cat-tab-btn' + (mode==='sect' ? ' active-sect' : '');
+  loadCatTab(mode);
+}
+
+function renderCat() {
+  const d = catData[catMode];
+  if (!d) return;
+
+  if (catMode === 'earn') {
+    const items = d.items || [];
+    if (!items.length) {
+      document.getElementById('catalystsContainer').innerHTML =
+        '<div class="cat-loading">Geen earnings nieuws gevonden voor vandaag.</div>';
+      return;
+    }
+    const sourceColor = src => {
+      src = (src||'').toLowerCase();
+      if (src.includes('benzinga'))     return '#22d3ee';
+      if (src.includes('globe'))        return '#60a5fa';
+      if (src.includes('google'))       return '#f87171';
+      if (src.includes('business'))     return '#a78bfa';
+      return '#5a7090';
+    };
+    const fmtTime = pub => {
+      if (!pub) return '—';
+      try {
+        const d = new Date(pub);
+        return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+      } catch { return '—'; }
+    };
+    const rows = items.map(e => {
+      const tickers = (e.tickers||[]).slice(0,3).map(t =>
+        `<span class="td-ticker" style="font-size:10px;margin-right:4px">${t}</span>`
+      ).join('');
+      return `<tr onclick="window.open('${e.link||'#'}','_blank')">
+        <td style="min-width:60px">${tickers || '<span style="color:var(--muted)">—</span>'}</td>
+        <td style="color:var(--text);font-size:11px;font-family:sans-serif;max-width:400px;white-space:normal;line-height:1.4">${e.title||''}</td>
+        <td><span style="font-family:var(--mono);font-size:9px;font-weight:600;color:${sourceColor(e.source)}">${(e.source||'').toUpperCase().slice(0,10)}</span></td>
+        <td style="color:var(--muted);font-family:var(--mono);font-size:10px">${fmtTime(e.pubDate)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('catalystsContainer').innerHTML = `
+      <table class="cat-table">
+        <thead><tr>
+          <th>Ticker</th><th>Headline</th><th>Bron</th><th>Tijd</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+  } else if (catMode === 'fda') {
+    const items = d.items || [];
+    if (!items.length) {
+      document.getElementById('catalystsContainer').innerHTML =
+        '<div class="cat-loading">Geen recente FDA filings gevonden.</div>';
+      return;
+    }
+    const rows = items.map(f => `
+      <tr onclick="window.open('${f.link}','_blank')">
+        <td class="td-ticker">${f.symbol||'—'}</td>
+        <td style="color:var(--text);font-size:11px;font-family:sans-serif">${(f.company||'').slice(0,30)}</td>
+        <td style="color:var(--muted)">${f.date||'—'}</td>
+        <td style="color:#a78bfa;font-size:11px">${(f.title||'').slice(0,50)}</td>
+      </tr>`).join('');
+    document.getElementById('catalystsContainer').innerHTML = `
+      <table class="cat-table">
+        <thead><tr><th>Ticker</th><th>Bedrijf</th><th>Datum</th><th>Filing</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+  } else if (catMode === 'sect') {
+    const items = d.items || [];
+    if (!items.length) {
+      document.getElementById('catalystsContainer').innerHTML =
+        '<div class="cat-loading">Geen sectordata beschikbaar.</div>';
+      return;
+    }
+    const maxAbs = Math.max(...items.map(s => Math.abs(s.changePct)), 1);
+    const rows = items.map(s => {
+      const pct     = s.changePct || 0;
+      const pos     = pct >= 0;
+      const barW    = Math.round(Math.abs(pct) / maxAbs * 100);
+      const color   = pos ? '#00e5b0' : '#f43f5e';
+      return `<tr>
+        <td style="color:var(--text);font-size:12px;font-family:sans-serif;min-width:160px">${s.sector}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="sect-bar-wrap"><div class="sect-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:${color};min-width:54px">
+              ${pos?'+':''}${pct.toFixed(2)}%
+            </span>
+          </div>
+        </td>
+        <td style="color:var(--muted);font-size:10px;font-family:var(--mono)">
+          ${pos ? '↑ Leidende sector' : '↓ Achterblijvend'}
+        </td>
+      </tr>`;
+    }).join('');
+    document.getElementById('catalystsContainer').innerHTML = `
+      <table class="cat-table">
+        <thead><tr><th>Sector</th><th>Prestatie vandaag</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
 }
 
 // ── Mobile menu ───────────────────────────────────────────────────────────────
@@ -3498,7 +4011,8 @@ function loadSidebar() { if(!base()||!apiKey()) return; loadMarket(); loadNews()
 function loadAll() {
   if (!base()) return;
   if (apiKey()) { loadMarket(); loadNews(); }
-  if (fmpKey()) loadMovers();
+  if (fmpKey()) { loadMovers(); }
+  loadCatalysts(); // earnings + FDA work without FMP key
 }
 
 // ── Yesterday's Movers ───────────────────────────────────────────────────────
@@ -3924,19 +4438,12 @@ setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
   "@type": "WebApplication",
   "name": "Gap Scanner",
   "url": "https://sahadataly.github.io/gap-scanner/",
-  "description": "Gratis gap scanner voor day traders in Nederland en België. Vind elke dag de sterkste momentum aandelen op de Amerikaanse beurs.",
+  "description": "Gratis gap scanner voor day traders in Nederlanden België. Vind elke dag de sterkste momentum aandelen op de Amerikaanse beurs.",
   "applicationCategory": "FinanceApplication",
   "operatingSystem": "Web",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "EUR"
-  },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
   "inLanguage": "nl",
-  "audience": {
-    "@type": "Audience",
-    "geographicArea": "Europa"
-  }
+  "audience": { "@type": "Audience", "geographicArea": "Europa" }
 }
 </script>
 
