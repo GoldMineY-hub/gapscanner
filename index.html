@@ -2388,7 +2388,7 @@ export default {
     if (url.pathname === '/videos')   return handleVideos();
     if (url.pathname === '/debug')    return handleDebug(fmp);
     if (url.pathname === '/earnings') return handleEarnings();
-    if (url.pathname === '/sectors')  return handleSectors(fmp);
+    if (url.pathname === '/sectors')  return handleSectors(key);
     if (url.pathname === '/fda')      return handleFDA();
 
     return new Response('Gap Scanner Worker: /scan /market /news /videos /health', { headers: CORS });
@@ -2948,21 +2948,45 @@ async function handleEarnings() {
 // ─────────────────────────────────────────────────────────────────────────────
 // /sectors — Sector performance snapshot via FMP stable API
 // ─────────────────────────────────────────────────────────────────────────────
-async function handleSectors(fmpKey) {
-  if (!fmpKey) return err('Geen FMP API key.');
+// ─────────────────────────────────────────────────────────────────────────────
+// /sectors — Sector performance via SPDR Sector ETFs (Finnhub free)
+// No FMP needed — uses the Finnhub key the user already has
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleSectors(finnhubKey) {
+  if (!finnhubKey) return err('Geen Finnhub API key voor sectordata.');
   try {
-    // Try stable first, fall back to v3
-    let data = await fmpFetch('/sector-performance', fmpKey, true).catch(() =&gt; null);
-    if (!data || !data.length) {
-      data = await fmpFetch('/sectors-performance', fmpKey, false).catch(() =&gt; []);
-    }
-    const items = (Array.isArray(data) ? data : [])
-      .map(s =&gt; ({
-        sector:    s.sector ?? s.name ?? '',
-        changePct: parseFloat(String(s.changesPercentage ?? s.changePercentage ?? s.change ?? 0).replace('%','')) || 0,
-      }))
-      .filter(s =&gt; s.sector)
+    const SECTOR_ETFS = [
+      { ticker: 'XLK',  sector: 'Technology' },
+      { ticker: 'XLV',  sector: 'Healthcare' },
+      { ticker: 'XLF',  sector: 'Financials' },
+      { ticker: 'XLE',  sector: 'Energy' },
+      { ticker: 'XLI',  sector: 'Industrials' },
+      { ticker: 'XLY',  sector: 'Consumer Discretionary' },
+      { ticker: 'XLP',  sector: 'Consumer Staples' },
+      { ticker: 'XLB',  sector: 'Materials' },
+      { ticker: 'XLRE', sector: 'Real Estate' },
+      { ticker: 'XLU',  sector: 'Utilities' },
+      { ticker: 'XLC',  sector: 'Communication Services' },
+    ];
+
+    // Fetch all sector ETF quotes simultaneously
+    const quotes = await Promise.all(
+      SECTOR_ETFS.map(s =&gt;
+        fh('/quote', finnhubKey, { symbol: s.ticker })
+          .then(q =&gt; ({
+            sector:    s.sector,
+            ticker:    s.ticker,
+            price:     q.c ?? null,
+            changePct: q.pc &gt; 0 ? +((q.c - q.pc) / q.pc * 100).toFixed(2) : 0,
+          }))
+          .catch(() =&gt; ({ sector: s.sector, ticker: s.ticker, price: null, changePct: 0 }))
+      )
+    );
+
+    const items = quotes
+      .filter(q =&gt; q.price !== null)
       .sort((a, b) =&gt; b.changePct - a.changePct);
+
     return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
   } catch(e) { return err(e.message); }
 }
@@ -3560,7 +3584,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -3686,11 +3710,11 @@ async function loadCatalysts() {
 
 async function loadCatTab(mode) {
   if (!base()) return;
-  // Earnings and FDA work without FMP key (free sources only)
-  // Sectors needs FMP key
-  if (mode === 'sect' && !fmpKey()) {
+  // Earnings and FDA work without any key (free sources)
+  // Sectors needs Finnhub key (for sector ETF quotes)
+  if (mode === 'sect' && !apiKey()) {
     document.getElementById('catalystsContainer').innerHTML =
-      '<div class="cat-loading">Voer je FMP key in voor sectordata.</div>';
+      '<div class="cat-loading">Voer je Finnhub key in voor sectordata.</div>';
     return;
   }
   if (catData[mode]) { renderCat(); return; }
@@ -3785,17 +3809,18 @@ function renderCat() {
     const items = d.items || [];
     if (!items.length) {
       document.getElementById('catalystsContainer').innerHTML =
-        '<div class="cat-loading">Geen sectordata beschikbaar.</div>';
+        '<div class="cat-loading">Voer je Finnhub key in voor sectordata.</div>';
       return;
     }
     const maxAbs = Math.max(...items.map(s => Math.abs(s.changePct)), 1);
     const rows = items.map(s => {
-      const pct     = s.changePct || 0;
-      const pos     = pct >= 0;
-      const barW    = Math.round(Math.abs(pct) / maxAbs * 100);
-      const color   = pos ? '#00e5b0' : '#f43f5e';
+      const pct   = s.changePct || 0;
+      const pos   = pct >= 0;
+      const barW  = Math.round(Math.abs(pct) / maxAbs * 100);
+      const color = pos ? '#00e5b0' : '#f43f5e';
       return `<tr>
-        <td style="color:var(--text);font-size:12px;font-family:sans-serif;min-width:160px">${s.sector}</td>
+        <td style="color:var(--text);font-size:12px;font-family:sans-serif;min-width:180px">${s.sector}</td>
+        <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${s.ticker}</td>
         <td>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="sect-bar-wrap"><div class="sect-bar-fill" style="width:${barW}%;background:${color}"></div></div>
@@ -3805,13 +3830,13 @@ function renderCat() {
           </div>
         </td>
         <td style="color:var(--muted);font-size:10px;font-family:var(--mono)">
-          ${pos ? '↑ Leidende sector' : '↓ Achterblijvend'}
+          ${pos ? '↑ Leidend' : '↓ Achterblijvend'}
         </td>
       </tr>`;
     }).join('');
     document.getElementById('catalystsContainer').innerHTML = `
       <table class="cat-table">
-        <thead><tr><th>Sector</th><th>Prestatie vandaag</th><th>Status</th></tr></thead>
+        <thead><tr><th>Sector</th><th>ETF</th><th>Prestatie vandaag</th><th>Status</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -4453,12 +4478,8 @@ setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
 <!-- Schema.org structured data for Google -->
 <script type="application/ld+json">
 {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Gap Scanner",
-  "url": "https://sahadataly.github.io/gap-scanner/",
-  "description": "Gratis gap scanner voor day traders in
-  "applicationCategory": "FinanceApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":"nl"}
+  "@context": "https
+  "applicationCategory":"FinanceApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":"nl"}
 </script>
 </body>
 </html>
