@@ -2992,8 +2992,8 @@ async function handleSectors(finnhubKey) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// /fda — FDA action dates via SEC EDGAR full-text search (free, no key)
-// Uses correct EDGAR efts API field names
+// /fda — FDA filings via SEC EDGAR full-text search (free, no key)
+// Direct links to actual filing documents via accession number
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleFDA() {
   try {
@@ -3003,29 +3003,39 @@ async function handleFDA() {
     });
     if (!res.ok) throw new Error(&#96;SEC EDGAR fout &#36;{res.status}&#96;);
     const data = await res.json();
-    const hits = data.hits?.hits ?? [];
+    const hits  = data.hits?.hits ?? [];
 
     const items = hits.slice(0, 10).map(h =&gt; {
       const src = h._source || {};
-      // EDGAR display_names format: "Company Name (TICKER) (CIK 0001234567)"
+
+      // EDGAR display_names: ["Company Name (TICKER) (CIK 0001234567)"]
       const displayNames = src.display_names || [];
       const firstName    = displayNames[0] || '';
       const tickerMatch  = firstName.match(/\(([A-Z]{1,6})\)/);
       const ticker       = tickerMatch ? tickerMatch[1] : '';
-      // Extract company name — everything before the first "("
       const company      = firstName.split('(')[0].trim();
-      // Build a real direct link to the filing
-      const accession    = src.file_num || src.period_of_report || '';
-      const filingLink   = src.file_date
-        ? &#96;https://efts.sec.gov/LATEST/search-index?q=%22&#36;{encodeURIComponent(company || 'FDA')}%22&amp;forms=8-K&amp;dateRange=custom&amp;startdt=&#36;{src.file_date}&amp;enddt=&#36;{src.file_date}&#96;
-        : 'https://efts.sec.gov/LATEST/search-index?q=%22FDA+approval%22&amp;forms=8-K';
+
+      // The hit _id is the accession number — use it to build a direct EDGAR filing link
+      // Format: 0001234567-26-000123 → direct index page on SEC.gov
+      const accessionRaw = (h._id || '').replace(/\//g, '-');
+      // CIK is embedded in accession number first 10 digits
+      const cik          = src.ciks?.[0] || accessionRaw.split('-')[0] || '';
+      const accessionClean = accessionRaw.replace(/-/g, '');
+
+      // Direct link to the filing index page — always works
+      const link = cik &amp;&amp; accessionClean
+        ? &#96;https://www.sec.gov/Archives/edgar/data/&#36;{parseInt(cik)}/&#96; +
+          &#96;&#36;{accessionClean}/&#36;{accessionRaw}-index.htm&#96;
+        : &#96;https://efts.sec.gov/LATEST/search-index?q=&#36;{encodeURIComponent(ticker || company)}&amp;forms=8-K&#96;;
 
       return {
         ticker,
         company,
-        date:  src.file_date   ?? '',
-        title: company ? &#96;&#36;{company} — SEC 8-K FDA Filing&#96; : 'SEC 8-K FDA Filing',
-        link:  &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{encodeURIComponent(company)}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=5&amp;search_text=&#96;,
+        date:  src.file_date ?? '',
+        title: company
+          ? &#96;&#36;{company} — 8-K FDA Filing&#96;
+          : 'SEC 8-K FDA Filing',
+        link,
       };
     }).filter(i =&gt; i.company || i.ticker);
 
@@ -3088,21 +3098,30 @@ async function fetchYahooRSS(ticker) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchSECFilings(ticker) {
   try {
-    // SEC EDGAR full-text search RSS for this ticker in 8-K filings
     const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22&#36;{ticker}%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(3)}&amp;enddt=&#36;{getTodayDate()}&amp;forms=8-K&#96;;
     const res = await fetch(url, { headers: { 'User-Agent': 'GapScanner contact@goldminey.com', 'Accept': 'application/json' } });
     if (!res.ok) return [];
     const data = await res.json();
     const hits  = data.hits?.hits ?? [];
-    return hits.slice(0, 3).map(h =&gt; ({
-      title:   h._source?.period_of_report
-               ? &#96;8-K Filing: &#36;{h._source?.display_date_filed} — &#36;{h._source?.entity_name ?? ticker}&#96;
-               : &#96;SEC 8-K: &#36;{h._source?.entity_name ?? ticker}&#96;,
-      link:    &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{ticker}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=10&#96;,
-      source:  'SEC EDGAR',
-      pubDate: h._source?.period_of_report ?? null,
-      tickers: [ticker],
-    }));
+    return hits.slice(0, 3).map(h =&gt; {
+      const src          = h._source || {};
+      const displayNames = src.display_names || [];
+      const firstName    = displayNames[0] || '';
+      const company      = firstName.split('(')[0].trim();
+      const accessionRaw = (h._id || '').replace(/\//g, '-');
+      const cik          = src.ciks?.[0] || accessionRaw.split('-')[0] || '';
+      const accessionClean = accessionRaw.replace(/-/g, '');
+      const link = cik &amp;&amp; accessionClean
+        ? &#96;https://www.sec.gov/Archives/edgar/data/&#36;{parseInt(cik)}/&#36;{accessionClean}/&#36;{accessionRaw}-index.htm&#96;
+        : &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{ticker}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=5&#96;;
+      return {
+        title:   company ? &#96;8-K Filing: &#36;{company}&#96; : &#96;SEC 8-K: &#36;{ticker}&#96;,
+        link,
+        source:  'SEC EDGAR',
+        pubDate: src.file_date ?? null,
+        tickers: [ticker],
+      };
+    });
   } catch { return []; }
 }
 
@@ -3584,7 +3603,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -4469,16 +4488,7 @@ setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
   "@type": "WebApplication",
   "name": "Gap Scanner",
   "url": "https://sahadataly.github.io/gap-scanner/",
-  "description": "Gratis gap scanner voor day traders in Nederland en België. Vind elke dag de sterkste momentum aandelen op de Amerikaanse beurs.",
-  "applicationCategory": "FinanceApplication",
-  "operat
-}
-</script>
-
-<!-- Schema.org structured data for Google -->
-<script type="application/ld+json">
-{
-  "@context": "https
+  "description": "Gratis gap scanner voor day traders in Nederland en België. Vind elke dag de sterkste momentum aandelen op de Amerikaanse beu
   "applicationCategory":"FinanceApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":"nl"}
 </script>
 </body>
