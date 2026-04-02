@@ -2951,11 +2951,15 @@ async function handleEarnings() {
 async function handleSectors(fmpKey) {
   if (!fmpKey) return err('Geen FMP API key.');
   try {
-    const data = await fmpFetch('/sector-performance', fmpKey, true);
+    // Try stable first, fall back to v3
+    let data = await fmpFetch('/sector-performance', fmpKey, true).catch(() =&gt; null);
+    if (!data || !data.length) {
+      data = await fmpFetch('/sectors-performance', fmpKey, false).catch(() =&gt; []);
+    }
     const items = (Array.isArray(data) ? data : [])
       .map(s =&gt; ({
-        sector:     s.sector ?? s.name ?? '',
-        changePct:  parseFloat(String(s.changesPercentage ?? s.change ?? 0).replace('%','')) || 0,
+        sector:    s.sector ?? s.name ?? '',
+        changePct: parseFloat(String(s.changesPercentage ?? s.changePercentage ?? s.change ?? 0).replace('%','')) || 0,
       }))
       .filter(s =&gt; s.sector)
       .sort((a, b) =&gt; b.changePct - a.changePct);
@@ -2964,28 +2968,43 @@ async function handleSectors(fmpKey) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// /fda — FDA action dates via SEC EDGAR RSS (PDUFA dates in 8-K filings)
-// Free, no API key needed
+// /fda — FDA action dates via SEC EDGAR full-text search (free, no key)
+// Uses correct EDGAR efts API field names
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleFDA() {
   try {
-    // SEC EDGAR search for recent FDA-related 8-K filings
-    const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22PDUFA%22+OR+%22FDA+approval%22+OR+%22NDA%22+OR+%22BLA%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(7)}&amp;enddt=&#36;{getDateDaysAgo(-7)}&amp;forms=8-K&amp;hits.hits.total.value=true&#96;;
-    const res  = await fetch(url, {
-      headers: { 'User-Agent': 'GapScanner contact@goldminey.com', 'Accept': 'application/json' }
+    const url = &#96;https://efts.sec.gov/LATEST/search-index?q=%22PDUFA%22+OR+%22FDA+approval%22+OR+%22NDA+submission%22+OR+%22BLA+submission%22&amp;dateRange=custom&amp;startdt=&#36;{getDateDaysAgo(14)}&amp;enddt=&#36;{getDateDaysAgo(0)}&amp;forms=8-K&#96;;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'GapScanner/1.0 contact@goldminey.com', 'Accept': 'application/json' }
     });
     if (!res.ok) throw new Error(&#96;SEC EDGAR fout &#36;{res.status}&#96;);
     const data = await res.json();
-    const hits  = data.hits?.hits ?? [];
-    const items = hits.slice(0, 10).map(h =&gt; ({
-      company: h._source?.entity_name ?? '',
-      symbol:  h._source?.period_of_report ?? '',
-      date:    h._source?.file_date ?? '',
-      title:   h._source?.display_date_filed
-               ? &#96;8-K FDA Filing — &#36;{h._source.entity_name}&#96;
-               : 'SEC 8-K FDA Filing',
-      link:    &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{encodeURIComponent(h._source?.entity_name ?? '')}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=5&#96;,
-    }));
+    const hits = data.hits?.hits ?? [];
+
+    const items = hits.slice(0, 10).map(h =&gt; {
+      const src = h._source || {};
+      // EDGAR display_names format: "Company Name (TICKER) (CIK 0001234567)"
+      const displayNames = src.display_names || [];
+      const firstName    = displayNames[0] || '';
+      const tickerMatch  = firstName.match(/\(([A-Z]{1,6})\)/);
+      const ticker       = tickerMatch ? tickerMatch[1] : '';
+      // Extract company name — everything before the first "("
+      const company      = firstName.split('(')[0].trim();
+      // Build a real direct link to the filing
+      const accession    = src.file_num || src.period_of_report || '';
+      const filingLink   = src.file_date
+        ? &#96;https://efts.sec.gov/LATEST/search-index?q=%22&#36;{encodeURIComponent(company || 'FDA')}%22&amp;forms=8-K&amp;dateRange=custom&amp;startdt=&#36;{src.file_date}&amp;enddt=&#36;{src.file_date}&#96;
+        : 'https://efts.sec.gov/LATEST/search-index?q=%22FDA+approval%22&amp;forms=8-K';
+
+      return {
+        ticker,
+        company,
+        date:  src.file_date   ?? '',
+        title: company ? &#96;&#36;{company} — SEC 8-K FDA Filing&#96; : 'SEC 8-K FDA Filing',
+        link:  &#96;https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&amp;company=&#36;{encodeURIComponent(company)}&amp;type=8-K&amp;dateb=&amp;owner=include&amp;count=5&amp;search_text=&#96;,
+      };
+    }).filter(i =&gt; i.company || i.ticker);
+
     return ok({ ok: true, count: items.length, items, ts: new Date().toISOString() });
   } catch(e) { return err(e.message); }
 }
@@ -3541,7 +3560,7 @@ function err(msg, status=500) { return new Response(JSON.stringify({ ok: false, 
 </div><!-- .wrap -->
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let results=[], prevTickers=new Set(), sortCol='gapPct', sortDir=-1, autoTimer=null;
 
@@ -3751,10 +3770,10 @@ function renderCat() {
     }
     const rows = items.map(f => `
       <tr onclick="window.open('${f.link}','_blank')">
-        <td class="td-ticker">${f.symbol||'—'}</td>
-        <td style="color:var(--text);font-size:11px;font-family:sans-serif">${(f.company||'').slice(0,30)}</td>
-        <td style="color:var(--muted)">${f.date||'—'}</td>
-        <td style="color:#a78bfa;font-size:11px">${(f.title||'').slice(0,50)}</td>
+        <td class="td-ticker">${f.ticker || '—'}</td>
+        <td style="color:var(--text);font-size:11px;font-family:sans-serif">${(f.company||'').slice(0,32)}</td>
+        <td style="color:var(--muted);font-family:var(--mono);font-size:10px">${f.date||'—'}</td>
+        <td style="color:#a78bfa;font-size:11px;font-family:sans-serif">${(f.title||'').slice(0,50)}</td>
       </tr>`).join('');
     document.getElementById('catalystsContainer').innerHTML = `
       <table class="cat-table">
@@ -4438,14 +4457,8 @@ setInterval(() => { if (base() && fmpKey()) loadMovers(); }, 5 * 60 * 1000);
   "@type": "WebApplication",
   "name": "Gap Scanner",
   "url": "https://sahadataly.github.io/gap-scanner/",
-  "description": "Gratis gap scanner voor day traders in Nederlanden België. Vind elke dag de sterkste momentum aandelen op de Amerikaanse beurs.",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Web",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "inLanguage": "nl",
-  "audience": { "@type": "Audience", "geographicArea": "Europa" }
-}
+  "description": "Gratis gap scanner voor day traders in
+  "applicationCategory": "FinanceApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"inLanguage":"nl"}
 </script>
-
 </body>
 </html>
