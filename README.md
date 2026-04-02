@@ -1,171 +1,155 @@
 # Gap Scanner
 
-A free **momentum stock scanner** for Dutch and Belgian day traders. Scan US markets every morning for gap-up stocks with news, volume and momentum. Based on the proven strategy of Ross Cameron from Warrior Trading. No account, no subscription, no credit card required.
+Een gratis **momentum aandelen scanner** voor Nederlandse en Belgische day traders. Scant elke ochtend alle aandelen op NYSE en NASDAQ op gap-up kansen met nieuws, volume en momentum. Gebaseerd op de bewezen strategie van Ross Cameron (Warrior Trading).
 
-🇳🇱 The interface is fully in Dutch, built for traders in the Netherlands, Belgium and across Europe.
+Volledig in het Nederlands. Geen abonnement, geen registratie, geen creditcard vereist.
 
-🌐 **Live app:** [goldminey-hub.github.io/gapscanner](https://goldminey-hub.github.io/gapscanner/)
-
----
-
-## What does it do?
-
-The scanner checks 300+ active small-cap US stocks every scan and filters them by four criteria from the Ross Cameron momentum strategy:
-
-1. **Price between $1 and $20.** Low-priced stocks are more volatile and attract more traders
-2. **Minimum 10% gap up:** The stock opened significantly higher than yesterday's close
-3. **High relative volume:** At least 5x more trading activity than normal
-4. **News catalyst:** An FDA approval, earnings beat, contract announcement or merger driving the move
-
-Stocks matching all criteria are ranked by score and displayed with their news headline, source and volume data.
+**Live app:** [goldminey-hub.github.io/gapscanner](https://goldminey-hub.github.io/gapscanner/)
 
 ---
 
-## Features
+## Wat doet de scanner?
 
-| Feature | Description |
-|---|---|
-| 📡 **Gap Scanner** | Scans 300+ small-cap stocks for gap-up opportunities every run |
-| 📰 **Live News Feed** | Merges headlines from Benzinga, GlobeNewswire, PR Newswire and Finnhub |
-| 📊 **Market Panel** | Live SPY, QQQ and VIX quotes refreshed every minute |
-| 🔔 **News Auto-refresh** | News feed updates automatically every 2 minutes in the background |
-| 📺 **Ross Cameron Videos** | Latest YouTube videos from Warrior Trading loaded automatically |
-| 📥 **CSV Export** | Export scan results to a spreadsheet with one click |
-| ⏱ **Auto Refresh** | Set the scanner to run automatically every 1, 2 or 5 minutes |
-| 💾 **Settings saved** | Worker URL and API key saved in your browser. Enter once, works every time |
+De scanner haalt alle gainers van de hele Amerikaanse beurs op via de FMP API en filtert ze op vier criteria uit de Ross Cameron strategie: gap %, prijs, volume en nieuws katalysator. Alles draait via jouw eigen gratis Cloudflare Worker zodat je data nooit langs externe servers gaat.
 
 ---
 
-## News Sources
+## Functies
 
-The scanner pulls news from four sources simultaneously every scan:
+### Gap Scanner
+- Scant alle aandelen op NYSE en NASDAQ via FMP stable API
+- Geen vaste watchlist maar echt alle US aandelen
+- Filterbaar op Min Gap %, Min Prijs en Max Prijs
+- Top 10 resultaten gesorteerd op gap % hoog naar laag
+- Auto-refresh elke 1, 2 of 5 minuten
+- CSV export van de resultaten
+- NIEUW en HOT badges per aandeel
 
-| Source | Type | Speed |
+### Nieuws per gapper
+Voor elk gevonden aandeel worden maximaal 5 bedrijfsspecifieke nieuwsberichten opgehaald uit 6 bronnen tegelijk, gesorteerd op kwaliteit en relevantie:
+
+| Bron | Type | Gratis |
 |---|---|---|
-| **Benzinga** | Market news, earnings, analyst ratings | Fast |
-| **GlobeNewswire** | Company press releases, FDA, contracts | Real-time |
-| **PR Newswire** | Company press releases | Real-time |
-| **Finnhub** | Market news with ticker tags | Fast |
+| SEC EDGAR 8-K | Officiele filings | Ja |
+| Business Wire | Persberichten | Ja |
+| GlobeNewswire | Persberichten | Ja |
+| PR Newswire | Persberichten | Ja |
+| Yahoo Finance RSS | Per ticker nieuws | Ja |
+| Google News RSS | Alle bronnen per ticker | Ja |
+| Finnhub company-news | Aggregator | Finnhub key |
 
-News items are ranked by catalyst keywords, source quality and recency. FDA approvals, earnings beats and contract announcements always rank highest.
+Nieuws wordt gescoord op bronkwaliteit, catalyst keywords (FDA, earnings, contract, merger) en recentheid. Generieke marktoverzichten van Chartmill, Seeking Alpha en MarketBeat worden gefilterd.
+
+### Markt paneel
+Altijd zichtbare horizontale balk bovenaan de pagina:
+- SPY en QQQ prijs en % verandering
+- VIX waarde met sentiment pill: Rustig / Gemiddeld / Hoog risico
+- Markt status: Open / Pre-market / After-hours / Gesloten
+- Dynamische strategie tip gebaseerd op marktomstandigheden
+- Beste scan tijd indicatie
+
+### Context banner
+Automatisch bijgewerkte banner die precies vertelt welke data je ziet en wanneer je terug moet komen voor verse data. Werkt op basis van de huidige ET tijd en wordt elke minuut bijgewerkt.
+
+### Gisteren's Movers
+- Top 10 stijgers en top 10 dalers van gisteren
+- Zelfde multi-source nieuws per aandeel als de scanner
+- Gebruik dit voor je watchlist in de pre-market
+
+### Catalysts vandaag
+Drie tabs met marktbewegende informatie:
+
+**Earnings tab** — Earnings nieuws van vandaag uit Benzinga, Google News en GlobeNewswire. Gefilterd op earnings keywords. Volledig gratis, geen API key nodig.
+
+**FDA tab** — Recente FDA-gerelateerde 8-K filings van SEC EDGAR. Volledig gratis, geen API key nodig.
+
+**Sectoren tab** — Sector performance van vandaag via FMP. Toont welke sector leidt en welke achterblijft. Vereist FMP key.
+
+### Live nieuws feed
+Automatisch verversend nieuws panel elke 2 minuten met bronnen: Benzinga, GlobeNewswire, PR Newswire, Business Wire, AccessWire en Finnhub.
+
+### YouTube sectie
+Laatste 6 videos van Ross Cameron (Warrior Trading) via YouTube RSS.
 
 ---
 
-## The Ross Cameron Strategy
+## Instellen
 
-Ross Cameron of Warrior Trading developed a daily system for finding the strongest momentum stocks. The scanner applies his four core criteria automatically:
+### Stap 1 — Cloudflare Worker
 
-| Criterion | Why it matters |
-|---|---|
-| **Price $1 to $20** | Low-priced stocks move faster. A rise from $2 to $4 is already 100% gain. |
-| **Min 10% gap up** | Signals strong buying pressure from overnight news. |
-| **High relative volume** | Confirms real interest. 5x normal volume means traders are paying attention. |
-| **News catalyst** | Without a reason to move, the gap is likely to fail. |
+1. Ga naar [workers.cloudflare.com](https://workers.cloudflare.com) en maak een gratis account aan
+2. Klik Workers en Pages, Create, Create Worker
+3. Geef de Worker een naam zoals `gap-scanner`
+4. Klik Edit code, verwijder alle bestaande code
+5. Kopieer de worker code van de Instellen tab op de site en plak deze erin
+6. Klik Deploy
+7. Kopieer je Worker URL: `https://gap-scanner.jouwnaam.workers.dev`
+
+100.000 gratis verzoeken per dag, meer dan genoeg voor dagelijks gebruik.
+
+### Stap 2 — FMP API key
+
+1. Ga naar [financialmodelingprep.com](https://financialmodelingprep.com)
+2. Maak een gratis account aan, geen creditcard nodig
+3. 250 gratis API calls per dag, 2 calls per scan = 100 scans per dag
+4. Kopieer je API key van het dashboard
+
+### Stap 3 — Finnhub API key
+
+1. Ga naar [finnhub.io](https://finnhub.io)
+2. Maak een gratis account aan, geen creditcard nodig
+3. 60 API calls per minuut gratis
+4. Kopieer je API key van het dashboard
+
+### Stap 4 — Keys invoeren
+
+1. Open de scanner pagina
+2. Klik Worker URL instellen, plak je Worker URL, klik Test
+3. Klik API keys invoeren
+4. Plak je FMP key en Finnhub key in de juiste velden
+5. Keys worden automatisch opgeslagen in je browser
 
 ---
 
-## Best Times to Use the Scanner (CET)
+## Worker API routes
 
-The US market opens at 15:30 CET. These are the optimal windows from the Netherlands and Belgium:
-
-| Time (CET) | Window | Description |
+| Route | Beschrijving | Key nodig |
 |---|---|---|
-| 10:00 to 13:00 | Pre-market prep | News breaks, first volume visible. Build your watchlist. |
-| 13:00 to 15:15 | Best scan window | News active, volume building. Ross Cameron scans here. |
-| 15:15 to 15:30 | Final selection | Lock your watchlist before the open. |
-| 15:30 to 16:30 | First trading hour | Market opens. Primary window for momentum strategies. |
+| `/scan` | Alle US gainers scannen | FMP + Finnhub |
+| `/market` | SPY, QQQ en VIX | Finnhub |
+| `/news` | Algemene nieuws feed | Optioneel |
+| `/movers` | Gisteren stijgers en dalers | FMP + Finnhub |
+| `/earnings` | Earnings nieuws vandaag | Geen |
+| `/fda` | FDA filings via SEC EDGAR | Geen |
+| `/sectors` | Sector performance | FMP |
+| `/videos` | Ross Cameron YouTube | Geen |
+| `/debug` | FMP API debug info | FMP |
+| `/health` | Worker status | Geen |
 
 ---
 
-## Getting Started
+## Tijden voor Europese traders
 
-### Step 1: Get a free Finnhub API key
-
-Go to [finnhub.io](https://finnhub.io) and create a free account. No credit card needed. Works from anywhere in Europe. You get 60 API calls per minute on the free tier.
-
-### Step 2: Deploy a free Cloudflare Worker
-
-1. Go to [workers.cloudflare.com](https://workers.cloudflare.com) and create a free account
-2. Click **Workers & Pages** → **Create** → **Create Worker** → click **Deploy**
-3. Click **Edit Code**, select all, delete and paste the `worker.js` code from this repository
-4. Click **Deploy** and copy your Worker URL
-
-Your Worker URL looks like this: `https://gap-scanner.yourname.workers.dev`
-
-### Step 3: Open the app and enter your settings
-
-Open the live app, enter your Worker URL and Finnhub API key in the config fields at the top. Both are saved in your browser automatically. Press **Scannen** and your results appear within seconds.
-
----
-
-## How it works
-
-```
-Browser (your computer)
-    │
-    ▼
-Cloudflare Worker (your free worker)
-    │
-    ├── Finnhub API       → real-time quotes for 300+ stocks
-    ├── Benzinga RSS      → fast market news
-    ├── GlobeNewswire RSS → company press releases
-    └── PR Newswire RSS   → company press releases
-    │
-    ▼
-Filter by gap %, price range and volume
-Match stocks to news catalysts
-Rank by score
-    │
-    ▼
-Results displayed in browser
-```
-
-Your Finnhub API key is passed directly to the Worker on each request. It is never stored on any server. Settings are saved only in your own browser localStorage.
-
----
-
-## Multiple Users
-
-Each person uses their own free Finnhub API key. Your daughters or other family members can use the same Worker URL with their own API key. Keys are stored separately in each person's browser. Everyone can scan simultaneously without affecting each other.
-
----
-
-## Tech Stack
-
-| Component | Technology |
+| Tijd (CET) | Wat te doen |
 |---|---|
-| Frontend | Vanilla HTML / CSS / JavaScript |
-| Backend | Cloudflare Workers (free tier) |
-| Market data | Finnhub API (free tier) |
-| News | Benzinga RSS, GlobeNewswire RSS, PR Newswire RSS |
-| Hosting | GitHub Pages |
-
-No frameworks, no build tools, no dependencies. Works in any modern browser.
-
----
-
-## Related Tools
-
-| Tool | Description | Link |
-|---|---|---|
-| 📊 **VSA Trader** | Volume Spread Analysis tool for reading institutional activity | [goldminey-hub.github.io/vsa-trader](https://goldminey-hub.github.io/vsa-trader/) |
-
-Both tools are free, open source and built for European traders.
+| 10:00 | Pre-market start, eerste nieuws zichtbaar |
+| 13:00 tot 15:15 | Beste scan window, watchlist opbouwen |
+| 15:15 tot 15:30 | Finale selectie voor open |
+| 15:30 | Amerikaanse beurs opent |
+| 15:30 tot 16:30 | Primair trading window, sterkste momentum |
+| 22:00 | Beurs sluit |
 
 ---
 
-## YouTube
+## GoldMineY
 
-Step-by-step tutorials in Dutch on how to use the Gap Scanner are available on the **GoldMineY** YouTube channel. Learn how to apply the Ross Cameron momentum strategy from the Netherlands.
+Gebouwd door een Nederlandse day trader. Onderdeel van het GoldMineY project.
+
+- Gap Scanner: [goldminey-hub.github.io/gapscanner](https://goldminey-hub.github.io/gapscanner/)
+- VSA Trader: [goldminey-hub.github.io/vsa-trader](https://goldminey-hub.github.io/vsa-trader/)
+- GitHub: [github.com/goldminey-hub](https://github.com/goldminey-hub)
+- Reddit: [reddit.com/r/GoldMineY](https://reddit.com/r/GoldMineY)
 
 ---
 
-## Disclaimer
-
-This tool is for **educational purposes only**. Trading involves risk. You can lose (part of) your investment. Past performance is not indicative of future results. This is not financial advice.
-
----
-
-## License
-
-MIT — free to use, modify and distribute.
+*Disclaimer: Alles op deze pagina is uitsluitend voor educatieve doeleinden. Handelen brengt risico's met zich mee. Je kunt een deel of al je inleg verliezen.*
